@@ -39,3 +39,45 @@ A arquitetura do sistema foi planejada para garantir escalabilidade, segurança 
 * **ORM (Prisma):** Utilizado como Mapeador Objeto-Relacional. O Prisma facilita a modelagem do banco de dados e a comunicação segura entre o Next.js e o PostgreSQL, tornando as consultas aos dados mais eficientes e protegidas contra vulnerabilidades.
 
 ---
+## ⚙️ 4. Instalação e Configuração do Ambiente Local
+
+Para executar o SCPO em sua máquina local para testes ou desenvolvimento, siga o passo a passo abaixo.
+
+### 📋 Pré-requisitos
+Antes de começar, certifique-se de ter as seguintes ferramentas instaladas em seu sistema:
+* [Node.js](https://nodejs.org/) (Versão 18 LTS ou superior)
+* [Git](https://git-scm.com/)
+* [PostgreSQL](https://www.postgresql.org/) (Instalado localmente ou rodando via Docker)
+
+---
+
+### 🚀 Passo a Passo de Instalação
+
+1. Clone o repositório**
+Abra o seu terminal e baixe o código fonte do projeto:
+```bash
+git clone [https://github.com/GabrielGuilDFS/SCPO---Sistema-de-Cadastro-e-Prontid-o-Operacional.git](https://github.com/GabrielGuilDFS/SCPO---Sistema-de-Cadastro-e-Prontid-o-Operacional.git)
+cd "SCPO---Sistema-de-Cadastro-e-Prontid-o-Operacional"
+```
+2. Instale as dependências
+Instale todas as bibliotecas necessárias (Next.js, Prisma, Tailwind, etc.) utilizando o NPM:
+```bash
+npm install
+```
+3. Configure as Variáveis de Ambiente
+Na raiz do projeto, crie um arquivo chamado .env (você pode se basear no arquivo .env.example, se houver).
+Adicione a string de conexão do seu banco de dados PostgreSQL:
+# Exemplo de conexão local
+```bash
+DATABASE_URL="postgresql://SEU_USUARIO:SUA_SENHA@localhost:5432/scpo_db?schema=public"
+```
+(Lembre-se de substituir SEU_USUARIO e SUA_SENHA pelas credenciais do seu banco local).
+4. Configure o Banco de Dados (Prisma)
+Com o banco de dados rodando, execute as migrations do Prisma para criar todas as tabelas (Policiais, Escalas, Transferências, etc.) automaticamente:
+```bash
+npx prisma migrate dev --name init
+```
+Em seguida, gere o cliente do Prisma para habilitar a tipagem no TypeScript:
+```bash
+npm run dev
+```

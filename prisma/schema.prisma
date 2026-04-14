@@ -4,10 +4,42 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum PerfilAcesso {
+  ADMINISTRADOR
+  OPERADOR
+  VISUALIZADOR
+
+  @@map("perfil_acesso")
+}
+
+model Login {
+  id           Int          @id @default(autoincrement())
+  policialId   Int          @unique @map("policial_id")
+  perfilAcesso PerfilAcesso @map("perfil_acesso")
+  matricula    String       @unique @db.VarChar(50)
+  senhaHash    String       @map("senha_hash") @db.VarChar(255)
+  statusAtivo  Boolean      @default(true) @map("status_ativo")
+  criadoEm     DateTime     @default(now()) @map("criado_em")
+  atualizadoEm DateTime     @updatedAt @map("atualizado_em")
+
+  policial Policial @relation(fields: [policialId], references: [id])
+
+  @@map("login")
+}
+
+model Policial {
+  id           Int    @id @default(autoincrement())
+  nomeCompleto String @map("nome_completo")
+  matricula    String @unique
+
+  login Login?
+
+  @@map("policial")
 }

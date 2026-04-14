@@ -1,12 +1,40 @@
+"use client"
+
+import { signIn } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { User, Lock, Eye, BotMessageSquare } from "lucide-react"
-import Link from "next/link"
-
 
 export default function LoginSCPO() {
+  const router = useRouter()
+
+  // Estados para guardar o que o usuário digita
+  const [matricula, setMatricula] = useState("")
+  const [senha, setSenha] = useState("")
+  const [erro, setErro] = useState("")
+
+  // Função que dispara quando o botão ENTRAR é clicado
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault() // Evita que a página recarregue sozinha
+    setErro("")
+
+    const resultado = await signIn("credentials", {
+      matricula,
+      senha,
+      redirect: false,
+    })
+
+    if (resultado?.error) {
+      setErro("Matrícula ou senha incorretos.")
+    } else {
+      router.push("/dashboard")
+    }
+  }
+
   return (
     // Fundo da Tela Cheia
     <div className="min-h-screen relative flex items-center justify-center bg-zinc-950 px-4 py-12">
@@ -20,7 +48,6 @@ export default function LoginSCPO() {
 
           {/* Seção do Logotipo */}
           <div className="flex flex-col items-center justify-center space-y-1 !mb-5">
-            {/* Logotipo */}
             <img
               src="/Logo-batal-removebg-preview.png"
               alt="SCPO - Sistema de Cadastro e Prontidão Operacional"
@@ -28,20 +55,31 @@ export default function LoginSCPO() {
             />
             <div className="text-center space-y-1">
               <h2 className="text-4xl font-bold tracking-tighter text-[#000000]">SCPO</h2>
-              <p className="text-sm font-medium uppercase tracking-wider text-[#000000] opacity-70">Sistema de Cadastro e Prontidão Operacional</p>
+              <p className="text-sm font-medium uppercase tracking-wider text-[#000000] opacity-70">
+                Sistema de Cadastro e Prontidão Operacional
+              </p>
             </div>
           </div>
 
-          {/* Formulário de Login */}
-          <form className="space-y-2">
+          {/* MENSAGEM DE ERRO (Aparece apenas se errar a senha) */}
+          {erro && (
+            <div className="rounded-md bg-red-50 p-3 text-center border border-red-200">
+              <p className="text-sm font-medium text-red-600">{erro}</p>
+            </div>
+          )}
+
+          {/* Formulário de Login (Agora conectado ao handleLogin) */}
+          <form onSubmit={handleLogin} className="space-y-2">
 
             {/* Campo Matrícula */}
             <div className="relative">
               <User className="absolute left-3 top-1/2 h-6 w-6 -translate-y-1/2 text-[#97836a]" />
               <Input
                 type="text"
+                value={matricula}
+                onChange={(e) => setMatricula(e.target.value)} // Salva a matrícula
                 placeholder="Digite sua matrícula..."
-                className="w-full rounded-5 border border-slate-500 bg-transparent pl-15 py-5 text-lg text-[#000000] placeholder:text-slate-400 focus:border-[#97836a] focus-visible:ring-1 focus-visible:ring-[#97836a]"
+                className="w-full rounded-md border border-slate-500 bg-transparent pl-12 py-6 text-lg text-[#000000] placeholder:text-slate-400 focus:border-[#97836a] focus-visible:ring-1 focus-visible:ring-[#97836a]"
               />
             </div>
 
@@ -50,8 +88,10 @@ export default function LoginSCPO() {
               <Lock className="absolute left-3 top-1/2 h-6 w-6 -translate-y-1/2 text-[#97836a]" />
               <Input
                 type="password"
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)} // Salva a senha
                 placeholder="Digite sua senha..."
-                className="w-full rounded-5 border border-slate-500 bg-transparent pl-15 pr-12 py-5 text-lg text-[#000000] placeholder:text-slate-400 focus:border-[#97836a] focus-visible:ring-1 focus-visible:ring-[#97836a]"
+                className="w-full rounded-md border border-slate-500 bg-transparent pl-12 pr-12 py-6 text-lg text-[#000000] placeholder:text-slate-400 focus:border-[#97836a] focus-visible:ring-1 focus-visible:ring-[#97836a]"
               />
               <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 h-10 w-10 -translate-y-1/2 text-slate-500 hover:bg-transparent hover:text-[#97836a]">
                 <Eye className="h-6 w-6" />
@@ -59,14 +99,14 @@ export default function LoginSCPO() {
             </div>
 
             {/* Link Esqueceu a senha */}
-            <div className="flex items-center justify-start !ml-3">
-              <a href="#" className="text-md font-medium text-[#97836a] hover:text-[#7f6e59]">
+            <div className="flex items-center justify-start !ml-1 pt-1">
+              <a href="#" className="text-sm font-medium text-[#97836a] hover:text-[#7f6e59]">
                 Esqueceu a senha?
               </a>
             </div>
 
             {/* Placeholder para o reCAPTCHA v2 */}
-            <div className="flex h-15 w-fit min-w-[430px] items-center justify-between rounded border border-slate-300 bg-slate-50 p-3 shadow-sm">
+            <div className="flex h-16 w-full items-center justify-between rounded border border-slate-300 bg-slate-50 p-3 shadow-sm mt-4">
               <div className="flex items-center gap-3">
                 <Checkbox id="recaptcha-check" className="h-6 w-6 border-2 border-slate-400 rounded-sm focus-visible:ring-0" />
                 <label htmlFor="recaptcha-check" className="text-sm font-medium text-[#000000]">Não sou um robô</label>
@@ -78,23 +118,23 @@ export default function LoginSCPO() {
             </div>
 
             {/* Manter-se conectado */}
-            <div className="flex items-center space-x-3 !ml-3">
-              <Checkbox id="manter-conectado" className="h-6 w-6 border-slate-300 focus-visible:ring-0" />
-              <label htmlFor="manter-conectado" className="text-md text-[#000000]">
+            <div className="flex items-center space-x-3 !ml-1 py-2">
+              <Checkbox id="manter-conectado" className="h-5 w-5 border-slate-400 focus-visible:ring-0" />
+              <label htmlFor="manter-conectado" className="text-sm text-[#000000]">
                 Manter-se conectado
               </label>
             </div>
 
             {/* Botão ENTRAR */}
             <div className="pt-2">
-              <Button type="submit" className="w-full bg-[#97836a] py-6 text-xl font-bold uppercase text-[#ffffff] hover:bg-[#7f6e59]">
+              <Button type="submit" className="w-full bg-[#97836a] py-6 text-lg font-bold uppercase text-[#ffffff] hover:bg-[#7f6e59]">
                 ENTRAR
               </Button>
             </div>
           </form>
 
           {/* Seção Inferior */}
-          <div className="text-center text-md text-[#000000]">
+          <div className="text-center text-sm text-[#000000] pt-2">
             Ainda não tem cadastro? {' '}
             <a href="/cadastro" className="font-semibold text-[#97836a] hover:text-[#7f6e59]">
               Cadastrar-se
@@ -103,5 +143,5 @@ export default function LoginSCPO() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

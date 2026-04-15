@@ -1,4 +1,3 @@
-// app/cadastro/actions.ts
 "use server"
 
 import prisma from "@/lib/prisma"
@@ -31,7 +30,7 @@ export async function cadastrarUsuario(formData: FormData) {
                     policialId: novoPolicial.id,
                     matricula,
                     senhaHash: hashedSenha,
-                    perfilAcesso: "OPERADOR", // Padrão inicial
+                    perfilAcesso: "OPERADOR",
                 },
             });
         });

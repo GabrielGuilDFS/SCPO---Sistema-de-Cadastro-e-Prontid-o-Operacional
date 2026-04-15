@@ -1,9 +1,9 @@
-import NextAuth from "next-auth";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
 
-const handler = NextAuth({
+export const authOptions: NextAuthOptions = {
     providers: [
         CredentialsProvider({
             name: "SCPO Login",
@@ -35,7 +35,7 @@ const handler = NextAuth({
                     return null;
                 }
 
-                // 5. Deu tudo certo! Retorna os dados que vão ficar salvos na sessão (Cookie)
+                // 5. Retorna os dados que vão ficar salvos na sessão (Cookie)
                 return {
                     id: usuarioLogin.id.toString(),
                     name: usuarioLogin.policial.nomeCompleto,
@@ -46,12 +46,14 @@ const handler = NextAuth({
         })
     ],
     pages: {
-        signIn: '/login', // Avisa ao NextAuth que a sua tela de login customizada fica nessa rota
+        signIn: '/login',
     },
     session: {
-        strategy: "jwt", // Usa tokens JSON Web para segurança
-        maxAge: 8 * 60 * 60, // Tempo de sessão: 8 horas (duração de um turno de serviço padrão)
+        strategy: "jwt",
+        maxAge: 8 * 60 * 60,
     }
-});
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };

@@ -17,6 +17,18 @@ export default function LoginSCPO() {
   const [senha, setSenha] = useState("")
   const [erro, setErro] = useState("")
 
+  const handleMatriculaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, "") // Remove tudo que não é número
+    if (value.length > 7) value = value.slice(0, 7) // Limita a 7 dígitos numéricos
+
+    // Aplica a máscara modelo Matrícula Militar: 999999-9
+    if (value.length > 6) {
+      value = value.replace(/(\d{6})(\d{1})/, "$1-$2")
+    }
+
+    setMatricula(value)
+  }
+
   // Função que dispara quando o botão ENTRAR é clicado
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault() // Evita que a página recarregue sozinha
@@ -77,7 +89,8 @@ export default function LoginSCPO() {
               <Input
                 type="text"
                 value={matricula}
-                onChange={(e) => setMatricula(e.target.value)} // Salva a matrícula
+                onChange={handleMatriculaChange}
+                maxLength={8}
                 placeholder="Digite sua matrícula..."
                 className="w-full rounded-md border border-slate-500 bg-transparent pl-12 py-6 text-lg text-[#000000] placeholder:text-slate-400 focus:border-[#97836a] focus-visible:ring-1 focus-visible:ring-[#97836a]"
               />

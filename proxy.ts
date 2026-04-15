@@ -24,7 +24,8 @@ export default withAuth(
 export const config = {
     matcher: [
         "/dashboard/:path*",
-        "/cadastro/:path*",
+        //manter comentado ate a logica de cadastro ficar pronta
+        //"/cadastro/:path*",
         "/policiais/:path*"
     ],
 }

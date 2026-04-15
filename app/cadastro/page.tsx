@@ -13,6 +13,17 @@ export default function CadastroPage() {
     const router = useRouter()
     const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro', texto: string } | null>(null)
     const [loading, setLoading] = useState(false)
+    const [matricula, setMatricula] = useState("")
+
+    const handleMatriculaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let value = e.target.value.replace(/\D/g, "")
+        if (value.length > 7) value = value.slice(0, 7)
+
+        if (value.length > 6) {
+            value = value.replace(/(\d{6})(\d{1})/, "$1-$2")
+        }
+        setMatricula(value)
+    }
 
     async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault()
@@ -73,7 +84,7 @@ export default function CadastroPage() {
 
                         <div className="space-y-1">
                             <Label htmlFor="matricula" className="text-sm font-normal text-[#000000]">Matrícula</Label>
-                            <Input id="matricula" name="matricula" type="text" required className="w-full rounded-md border border-slate-500 bg-transparent py-4 text-lg focus:border-[#302a22]" />
+                            <Input id="matricula" name="matricula" type="text" required value={matricula} onChange={handleMatriculaChange} maxLength={8} className="w-full rounded-md border border-slate-500 bg-transparent py-4 text-lg focus:border-[#302a22]" />
                         </div>
                         <div className="space-y-1">
                             <Label htmlFor="senha" className="text-sm font-normal text-[#000000]">Senha</Label>

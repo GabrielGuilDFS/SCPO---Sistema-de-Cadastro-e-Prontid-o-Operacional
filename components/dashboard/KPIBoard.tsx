@@ -5,12 +5,12 @@ import { Shield, ShieldAlert, ShieldCheck, Users } from "lucide-react"
 import { Pie, PieChart, Cell } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 
-const dataDistribuicao = [
-  { name: "1ª Cia", value: 60, color: "#97836a" },
-  { name: "2ª Cia", value: 45, color: "#544634" },
-  { name: "Sede", value: 25, color: "#cbd5e1" },
-  { name: "Tático", value: 20, color: "#000000" },
-]
+interface KPIBoardProps {
+  efetivoTotal: number;
+  efetivoProntidao: number;
+  efetivoAfastamento: number;
+  dataDistribuicao: { name: string; value: number; color: string; }[];
+}
 
 const chartConfig = {
   value: {
@@ -18,7 +18,7 @@ const chartConfig = {
   },
 }
 
-export function KPIBoard() {
+export function KPIBoard({ efetivoTotal, efetivoProntidao, efetivoAfastamento, dataDistribuicao }: KPIBoardProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {/* Efetivo Total */}
@@ -28,7 +28,7 @@ export function KPIBoard() {
           <Users className="h-4 w-4 text-[#97836a]" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-slate-800">150</div>
+          <div className="text-2xl font-bold text-slate-800">{efetivoTotal}</div>
           <p className="text-xs text-muted-foreground mt-1">Militares escalados</p>
         </CardContent>
       </Card>
@@ -40,7 +40,7 @@ export function KPIBoard() {
           <ShieldCheck className="h-4 w-4 text-emerald-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-emerald-600">120</div>
+          <div className="text-2xl font-bold text-emerald-600">{efetivoProntidao}</div>
           <p className="text-xs text-muted-foreground mt-1">Aptos para o serviço</p>
         </CardContent>
       </Card>
@@ -52,7 +52,7 @@ export function KPIBoard() {
           <ShieldAlert className="h-4 w-4 text-amber-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-amber-600">30</div>
+          <div className="text-2xl font-bold text-amber-600">{efetivoAfastamento}</div>
           <p className="text-xs text-muted-foreground mt-1">Férias, Licenças e LTS</p>
         </CardContent>
       </Card>

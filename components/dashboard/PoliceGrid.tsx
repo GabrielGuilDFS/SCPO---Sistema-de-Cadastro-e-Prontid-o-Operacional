@@ -3,22 +3,25 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-// Dados fictícios para demonstração do layout
-const mockPoliciais = [
-  { id: 1, nomeGuerra: "Sgt. Silva", matricula: "102345-1", companhia: "1ª Cia", status: "pronto", idade: 35 },
-  { id: 2, nomeGuerra: "Cb. Mendes", matricula: "115678-2", companhia: "Tático", status: "afastado", idade: 28 },
-  { id: 3, nomeGuerra: "Sd. Oliveira", matricula: "123456-3", companhia: "2ª Cia", status: "pronto", idade: 24 },
-  { id: 4, nomeGuerra: "Ten. Costa", matricula: "098765-4", companhia: "Sede", status: "pronto", idade: 42 },
-  { id: 5, nomeGuerra: "Sgt. Ramos", matricula: "104523-5", companhia: "1ª Cia", status: "afastado", idade: 38 },
-  { id: 6, nomeGuerra: "Sd. Lima", matricula: "121212-6", companhia: "2ª Cia", status: "pronto", idade: 26 },
-]
+interface Police {
+  id: number;
+  nomeGuerra: string;
+  matricula: string;
+  companhia: string;
+  status: string;
+  idade: number;
+}
 
-export function PoliceGrid() {
+interface PoliceGridProps {
+  policiais: Police[];
+}
+
+export function PoliceGrid({ policiais }: PoliceGridProps) {
   return (
     <div className="flex flex-col gap-3">
       <h3 className="font-semibold text-white text-lg mb-1">Efetivo Recente</h3>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {mockPoliciais.map((policial) => (
+        {policiais.map((policial) => (
           <Card key={policial.id} className="border-2 border-black shadow-sm hover:shadow-md transition-shadow bg-white overflow-hidden group">
             <CardContent className="p-0">
               <div className="flex items-center p-4 gap-4">

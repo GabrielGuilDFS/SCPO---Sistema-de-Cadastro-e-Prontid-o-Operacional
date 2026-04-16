@@ -34,10 +34,35 @@ model Login {
   @@map("login")
 }
 
+model Subunidade {
+  id        Int        @id @default(autoincrement())
+  nome      String     @unique
+  policiais Policial[]
+
+  @@map("subunidade")
+}
+
+model FuncaoAtual {
+  id        Int        @id @default(autoincrement())
+  nome      String     @unique
+  policiais Policial[]
+
+  @@map("funcao_atual")
+}
+
 model Policial {
-  id           Int    @id @default(autoincrement())
-  nomeCompleto String @map("nome_completo")
-  matricula    String @unique
+  id            Int          @id @default(autoincrement())
+  nomeCompleto  String       @map("nome_completo")
+  nomeGuerra    String?      @map("nome_guerra")
+  matricula     String       @unique
+  idade         Int?
+  status        String?      @default("pronto")
+
+  subunidadeId  Int?         @map("subunidade_id")
+  subunidade    Subunidade?  @relation(fields: [subunidadeId], references: [id])
+  
+  funcaoAtualId Int?         @map("funcao_atual_id")
+  funcaoAtual   FuncaoAtual? @relation(fields: [funcaoAtualId], references: [id])
 
   login Login?
 

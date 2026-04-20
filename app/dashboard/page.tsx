@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { authOptions } from "@/lib/auth"
 import { KPIBoard } from "@/components/dashboard/KPIBoard"
 import { QuickAccess } from "@/components/dashboard/QuickAccess"
 import { PoliceGrid } from "@/components/dashboard/PoliceGrid"
@@ -75,7 +75,7 @@ export default async function DashboardHome() {
   }))
 
   return (
-    <div className="min-h-screen bg-[#ffffff]">
+    <div className="min-h-screen bg-[#7f6e59]">
       {/* Header */}
       <header className="bg-[#3c342a] border-b border-black/10 shadow-sm px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
@@ -90,7 +90,7 @@ export default async function DashboardHome() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto bg-[#7f6e59] min-h-[calc(100vh-73px)] p-4 md:p-6 lg:p-8 space-y-8 shadow-2xl">
+      <main className="max-w-7xl mx-auto  min-h-[calc(100vh-73px)] p-4 md:p-6 lg:p-8 space-y-8">
         <section>
           <h2 className="text-3xl font-bold text-white tracking-tight">
             Bom dia, <span className="text-[#cca471]">{nomeUsuario}</span>
@@ -111,7 +111,7 @@ export default async function DashboardHome() {
           <div className="order-2 lg:order-1">
             <PoliceGrid policiais={policiaisProps} />
           </div>
-          <div className="order-1 lg:order-2 sticky top-24">
+          <div className="order-1 lg:order-2 lg:sticky lg:top-24">
             <QuickAccess />
           </div>
         </section>

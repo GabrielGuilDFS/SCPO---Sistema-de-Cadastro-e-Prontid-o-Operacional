@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/prisma"
 import bcrypt from "bcrypt"
+import { Prisma } from '@prisma/client'
 
 export async function cadastrarUsuario(formData: FormData) {
     const nomeCompleto = formData.get("nome") as string;
@@ -17,7 +18,7 @@ export async function cadastrarUsuario(formData: FormData) {
         const hashedSenha = await bcrypt.hash(senha, 10);
 
         // Transação: Cria o Policial e o Login juntos
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const novoPolicial = await tx.policial.create({
                 data: {
                     nomeCompleto,

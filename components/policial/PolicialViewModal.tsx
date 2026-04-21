@@ -1,3 +1,5 @@
+"use client"
+
 import {
   Dialog,
   DialogContent,
@@ -7,67 +9,155 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ShieldCheck } from "lucide-react"
 
-// Define a interface para receber o objeto completo do Prisma (Policial + Relacionamentos)
+// ---------------------------------------------------------------------------
+// Tipos
+// ---------------------------------------------------------------------------
+
 interface PolicialViewModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  policial: any | null; // Usando any temporariamente para flexibilidade, idealmente seria Prisma.PolicialGetPayload<{ include: { endereco: true, subunidade: true, funcaoAtual: true } }>
+  isOpen: boolean
+  onClose: () => void
+  policial: any | null
 }
 
-// Componente auxiliar para padronizar a exibição dos campos
-const DataItem = ({ label, value }: { label: string; value?: string | null }) => (
-  <div className="flex flex-col">
-    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">{label}</span>
-    <span className="text-sm font-medium text-slate-900 bg-slate-50 border border-slate-100 rounded-md px-3 py-2 min-h-[36px] flex items-center">
-      {value || "-"}
+// ---------------------------------------------------------------------------
+// Helpers de formatação
+// ---------------------------------------------------------------------------
+
+const formatDate = (value?: string | Date | null): string => {
+  if (!value) return "—"
+  const d = new Date(value)
+  if (isNaN(d.getTime())) return "—"
+  return d.toLocaleDateString("pt-BR", { timeZone: "UTC" })
+}
+
+const formatCpf = (value?: string | null): string => {
+  if (!value) return "—"
+  const n = value.replace(/\D/g, "")
+  return n.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
+}
+
+const formatCep = (value?: string | null): string => {
+  if (!value) return "—"
+  const n = value.replace(/\D/g, "")
+  return n.replace(/(\d{5})(\d{3})/, "$1-$2")
+}
+
+const formatPhone = (value?: string | null): string => {
+  if (!value) return "—"
+  const n = value.replace(/\D/g, "")
+  if (n.length === 11)
+    return n.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")
+  if (n.length === 10)
+    return n.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3")
+  return value
+}
+
+const formatTipoSanguineo = (value?: string | null): string => {
+  if (!value) return "—"
+  return value.replace("_POSITIVO", "+").replace("_NEGATIVO", "-")
+}
+
+const GRAU_SIGLA: Record<string, string> = {
+  SOLDADO: "SD",
+  CABO: "CB",
+  SARGENTO: "SGT",
+  SUBTENENTE: "SUB TEN",
+  TENENTE: "TEN",
+  CAPITAO: "CAP",
+  MAJOR: "MAJ",
+  TENENTE_CORONEL: "TEN CEL",
+  CORONEL: "CEL",
+}
+
+// ---------------------------------------------------------------------------
+// Sub-componente: campo read-only com label e valor
+// ---------------------------------------------------------------------------
+
+const Field = ({
+  label,
+  value,
+}: {
+  label: string
+  value?: string | null
+}) => (
+  <div className="flex flex-col gap-0.5">
+    <span className="text-sm text-gray-500">{label}</span>
+    <span className="font-medium text-gray-900 leading-snug">
+      {value || "—"}
     </span>
   </div>
-);
+)
 
-const formatDate = (dateString?: string | Date | null) => {
-  if (!dateString) return "-";
-  const date = new Date(dateString);
-  return date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
-};
+// ---------------------------------------------------------------------------
+// Separador de seção
+// ---------------------------------------------------------------------------
 
-export function PolicialViewModal({ isOpen, onClose, policial }: PolicialViewModalProps) {
-  if (!policial) return null;
+const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+  <div className="col-span-full border-b border-slate-100 pb-2 mb-1">
+    <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
+      {children}
+    </h4>
+  </div>
+)
 
-  const getGrauSigla = (grau: string) => {
-    const siglas: Record<string, string> = {
-      SOLDADO: "SD", CABO: "CB", SARGENTO: "SGT", SUBTENENTE: "SUB TEN",
-      TENENTE: "TEN", CAPITAO: "CAP", MAJOR: "MAJ", TENENTE_CORONEL: "TEN CEL", CORONEL: "CEL", none: ""
-    };
-    return siglas[grau] || grau;
-  };
+// ---------------------------------------------------------------------------
+// Componente principal
+// ---------------------------------------------------------------------------
 
-  const sigla = getGrauSigla(policial.grauHierarquico || "none");
-  const cracha = `${sigla}${sigla && policial.nomeGuerra ? " PM " : ""}${policial.nomeGuerra || ""}`.trim();
-  const iniciais = policial.nomeCompleto?.substring(0, 2).toUpperCase() || "PM";
+export function PolicialViewModal({
+  isOpen,
+  onClose,
+  policial,
+}: PolicialViewModalProps) {
+  if (!policial) return null
+
+  const sigla = GRAU_SIGLA[policial.grauHierarquico ?? ""] ?? ""
+  const guerra = policial.nomeGuerra || policial.nomeCompleto?.split(" ")[0] || ""
+  const cracha = [sigla, sigla ? "PM" : "", guerra].filter(Boolean).join(" ")
+  const iniciais = policial.nomeCompleto?.substring(0, 2).toUpperCase() ?? "PM"
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white p-0 gap-0">
-
-        {/* Header Fixo com Avatar e Resumo */}
-        <DialogHeader className="p-6 bg-[#3c342a] text-white border-b border-[#2d271f] sticky top-0 z-10">
-          <div className="flex items-center gap-5">
-            <Avatar className="h-16 w-16 border-2 border-[#cca471] shadow-md">
-              <AvatarImage src={policial.imagemUrl || ""} alt={policial.nomeCompleto} className="object-cover" />
-              <AvatarFallback className="bg-slate-200 text-slate-800 text-xl font-bold">{iniciais}</AvatarFallback>
+      <DialogContent
+        className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0 rounded-xl"
+      >
+        {/* ── Cabeçalho ─────────────────────────────────────────────────── */}
+        <DialogHeader className="bg-[#3c342a] px-6 py-5 shrink-0">
+          <div className="flex items-center gap-4">
+            {/* Avatar */}
+            <Avatar className="h-16 w-16 border-2 border-[#cca471] shadow">
+              <AvatarImage
+                src={policial.imagemUrl ?? ""}
+                alt={policial.nomeCompleto}
+                className="object-cover"
+              />
+              <AvatarFallback className="bg-slate-200 text-slate-700 text-xl font-bold">
+                {iniciais}
+              </AvatarFallback>
             </Avatar>
-            <div>
-              <DialogTitle className="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
+
+            {/* Identidade */}
+            <div className="flex flex-col gap-1">
+              {/* Crachá */}
+              <DialogTitle className="text-xl font-bold tracking-wide text-white leading-tight flex items-center gap-2">
                 {cracha || policial.nomeCompleto}
-                {policial.status === 'afastado' && (
-                  <Badge variant="destructive" className="text-[10px] h-5 uppercase tracking-wider">Afastado</Badge>
+                {policial.status === "afastado" && (
+                  <Badge
+                    variant="destructive"
+                    className="text-[10px] h-4 uppercase tracking-wider"
+                  >
+                    Afastado
+                  </Badge>
                 )}
               </DialogTitle>
-              <div className="flex items-center gap-3 text-slate-300 mt-1.5 text-sm">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#cca471]"></span>
-                  Matrícula: <strong className="text-white font-medium">{policial.matricula}</strong>
+
+              {/* Matrícula e Subunidade */}
+              <div className="flex items-center gap-3 text-slate-300 text-sm">
+                <span>
+                  Matrícula:{" "}
+                  <strong className="text-white">{policial.matricula}</strong>
                 </span>
                 {policial.subunidade?.nome && (
                   <>
@@ -80,109 +170,158 @@ export function PolicialViewModal({ isOpen, onClose, policial }: PolicialViewMod
           </div>
         </DialogHeader>
 
-        {/* Corpo do Modal (Abas) */}
-        <div className="p-6">
-          <Tabs defaultValue="aba-1" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-6 bg-slate-100/80 p-1">
-              <TabsTrigger value="aba-1" className="data-[state=active]:bg-white data-[state=active]:text-[#cca471] data-[state=active]:shadow-sm">1. Identificação</TabsTrigger>
-              <TabsTrigger value="aba-2" className="data-[state=active]:bg-white data-[state=active]:text-[#cca471] data-[state=active]:shadow-sm">2. Profissional</TabsTrigger>
-              <TabsTrigger value="aba-3" className="data-[state=active]:bg-white data-[state=active]:text-[#cca471] data-[state=active]:shadow-sm">3. Contato</TabsTrigger>
-              <TabsTrigger value="aba-4" className="data-[state=active]:bg-white data-[state=active]:text-[#cca471] data-[state=active]:shadow-sm">4. Observações</TabsTrigger>
+        {/* ── Corpo com Abas ────────────────────────────────────────────── */}
+        <div className="flex-1 overflow-y-auto bg-white">
+          <Tabs defaultValue="identificacao" className="w-full">
+            <TabsList className="w-full grid grid-cols-4 rounded-none border-b border-slate-100 bg-slate-50 h-auto p-0">
+              {[
+                { value: "identificacao", label: "Identificação" },
+                { value: "profissional", label: "Profissional" },
+                { value: "contato", label: "Contato" },
+                { value: "observacoes", label: "Observações" },
+              ].map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="rounded-none border-b-2 border-transparent py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 data-active:border-[#cca471] data-active:text-[#3c342a] data-active:bg-white data-active:shadow-none hover:text-slate-700"
+                >
+                  {tab.label}
+                </TabsTrigger>
+              ))}
             </TabsList>
 
-            <TabsContent value="aba-1" className="space-y-6 animate-in fade-in-50 duration-300">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="text-lg font-semibold text-slate-800">Dados Pessoais</h3>
+            {/* ── Aba 1: Identificação ──────────────────────────────────── */}
+            <TabsContent value="identificacao" className="p-6 focus:outline-none">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-base font-semibold text-slate-800">
+                  Dados Pessoais
+                </h3>
                 {policial.possuiPlanoSaude && (
-                  <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-emerald-200 shadow-none font-medium">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    <ShieldCheck className="h-3.5 w-3.5" />
                     Possui Plano de Saúde
-                  </Badge>
+                  </span>
                 )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
-                <div className="md:col-span-2">
-                  <DataItem label="Nome Completo" value={policial.nomeCompleto} />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
+                <Field label="Nome Completo" value={policial.nomeCompleto} />
+                <Field label="Nome de Guerra" value={policial.nomeGuerra} />
+                <Field label="CPF" value={formatCpf(policial.cpf)} />
+                <Field label="RG" value={policial.rg} />
+                <Field
+                  label="Data de Nascimento"
+                  value={formatDate(policial.dataNascimento)}
+                />
+
+                <Field label="Sexo" value={policial.sexo} />
+                <Field
+                  label="Tipo Sanguíneo"
+                  value={formatTipoSanguineo(policial.tipoSanguineo)}
+                />
+                <Field label="Estado Civil" value={policial.estadoCivil} />
+
+                <Field
+                  label="Escolaridade"
+                  value={policial.escolaridade?.replace(/_/g, " ")}
+                />
+                <Field label="Religiosidade" value={policial.religiosidade} />
+              </div>
+            </TabsContent>
+
+            {/* ── Aba 2: Profissional ───────────────────────────────────── */}
+            <TabsContent value="profissional" className="p-6 focus:outline-none">
+              <h3 className="text-base font-semibold text-slate-800 mb-5">
+                Lotação e Dados Funcionais
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
+                <Field
+                  label="Subunidade (Lotação)"
+                  value={policial.subunidade?.nome ?? "Sem Sede / Não Informada"}
+                />
+                <Field
+                  label="Função Atual"
+                  value={policial.funcaoAtual?.nome ?? "Não Informada"}
+                />
+                <Field
+                  label="Data de Admissão"
+                  value={formatDate(policial.dataAdmissao)}
+                />
+              </div>
+
+              <div className="mt-8">
+                <div className="border-b border-slate-100 pb-3 mb-5">
+                  <h3 className="text-base font-semibold text-slate-800">
+                    Habilitação
+                  </h3>
                 </div>
-                <DataItem label="Nome de Guerra" value={policial.nomeGuerra} />
-                <DataItem label="CPF" value={policial.cpf?.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")} />
-                <DataItem label="RG" value={policial.rg} />
-                <DataItem label="Data de Nascimento" value={formatDate(policial.dataNascimento)} />
-                <DataItem label="Sexo" value={policial.sexo} />
-                <DataItem label="Tipo Sanguíneo" value={policial.tipoSanguineo?.replace("_POSITIVO", "+").replace("_NEGATIVO", "-")} />
-                <DataItem label="Estado Civil" value={policial.estadoCivil} />
-                <DataItem label="Escolaridade" value={policial.escolaridade?.replace("_", " ")} />
-                <DataItem label="Religiosidade" value={policial.religiosidade} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+                  <Field label="Categoria CNH" value={policial.cnhCategoria} />
+                  <Field label="Número CNH" value={policial.cnhNumero} />
+                </div>
               </div>
             </TabsContent>
 
-            <TabsContent value="aba-2" className="space-y-6 animate-in fade-in-50 duration-300">
-              <div className="border-b border-slate-100 pb-3">
-                <h3 className="text-lg font-semibold text-slate-800">Lotação e Dados Funcionais</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-                <DataItem label="Subunidade (Lotação)" value={policial.subunidade?.nome || "Sem Sede / Não Informada"} />
-                <DataItem label="Função Atual" value={policial.funcaoAtual?.nome || "Não Informada"} />
-                <DataItem label="Data de Admissão (Inclusão)" value={formatDate(policial.dataAdmissao)} />
+            {/* ── Aba 3: Contato ────────────────────────────────────────── */}
+            <TabsContent value="contato" className="p-6 focus:outline-none">
+              <h3 className="text-base font-semibold text-slate-800 mb-5">
+                Contatos
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-5">
+                <Field label="E-mail" value={policial.email} />
+                <Field label="Telefone Primário" value={formatPhone(policial.telefonePrimario)} />
+                <Field label="Telefone Secundário" value={formatPhone(policial.telefoneSecundario)} />
               </div>
 
-              <div className="mt-8 border-b border-slate-100 pb-3">
-                <h3 className="text-lg font-semibold text-slate-800">Habilitação</h3>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-                <DataItem label="CNH Categoria" value={policial.cnhCategoria} />
-                <DataItem label="Número da CNH" value={policial.cnhNumero} />
-              </div>
-            </TabsContent>
+              <div className="mt-8">
+                <div className="border-b border-slate-100 pb-3 mb-5">
+                  <h3 className="text-base font-semibold text-slate-800">
+                    Endereço
+                  </h3>
+                </div>
 
-            <TabsContent value="aba-3" className="space-y-6 animate-in fade-in-50 duration-300">
-              <div className="border-b border-slate-100 pb-3">
-                <h3 className="text-lg font-semibold text-slate-800">Contatos</h3>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
-                <DataItem label="E-mail" value={policial.email} />
-                <DataItem label="Telefone Primário" value={policial.telefonePrimario} />
-                <DataItem label="Telefone Secundário" value={policial.telefoneSecundario} />
-              </div>
-
-              <div className="mt-8 border-b border-slate-100 pb-3">
-                <h3 className="text-lg font-semibold text-slate-800">Endereço</h3>
-              </div>
-              {policial.endereco ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5">
-                  <div className="md:col-span-2">
-                    <DataItem label="Logradouro" value={policial.endereco.logradouro} />
+                {policial.endereco ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-5">
+                    <Field label="Logradouro" value={policial.endereco.logradouro} />
+                    <Field label="Número" value={policial.endereco.numero} />
+                    <Field label="Bairro" value={policial.endereco.bairro} />
+                    <Field label="Cidade" value={policial.endereco.cidade} />
+                    <Field label="Estado (UF)" value={policial.endereco.estado} />
+                    <Field label="CEP" value={formatCep(policial.endereco.cep)} />
                   </div>
-                  <DataItem label="Número" value={policial.endereco.numero} />
-                  <DataItem label="Bairro" value={policial.endereco.bairro} />
-                  <DataItem label="Cidade" value={policial.endereco.cidade} />
-                  <div className="grid grid-cols-2 gap-4">
-                    <DataItem label="Estado" value={policial.endereco.estado} />
-                    <DataItem label="CEP" value={policial.endereco.cep?.replace(/(\d{5})(\d{3})/, "$1-$2")} />
-                  </div>
-                </div>
-              ) : (
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-lg text-center">
-                  <p className="text-slate-500 text-sm">Nenhum endereço registrado.</p>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="aba-4" className="space-y-6 animate-in fade-in-50 duration-300">
-              <div className="border-b border-slate-100 pb-3">
-                <h3 className="text-lg font-semibold text-slate-800">Observações e Histórico</h3>
-              </div>
-              <div className="bg-slate-50 border border-slate-100 rounded-lg p-5 min-h-[200px]">
-                {policial.observacoes ? (
-                  <p className="text-slate-700 whitespace-pre-wrap text-sm leading-relaxed">{policial.observacoes}</p>
                 ) : (
-                  <p className="text-slate-400 text-sm italic text-center mt-10">Nenhuma observação registrada para este policial.</p>
+                  <div className="rounded-lg bg-slate-50 border border-slate-100 p-6 text-center">
+                    <p className="text-sm text-slate-400">
+                      Nenhum endereço registrado.
+                    </p>
+                  </div>
                 )}
               </div>
             </TabsContent>
 
+
+            {/* ── Aba 4: Observações ────────────────────────────────────── */}
+            <TabsContent value="observacoes" className="p-6 focus:outline-none">
+              <h3 className="text-base font-semibold text-slate-800 mb-5">
+                Observações e Histórico
+              </h3>
+              <div className="rounded-lg bg-slate-50 border border-slate-100 p-5 min-h-[180px]">
+                {policial.observacoes ? (
+                  <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                    {policial.observacoes}
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-400 italic text-center mt-10">
+                    Nenhuma observação registrada para este policial.
+                  </p>
+                )}
+              </div>
+            </TabsContent>
           </Tabs>
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

@@ -57,49 +57,31 @@ export default async function DashboardHome() {
     }
   })
 
-  // Últimos 10 militares cadastrados
+  // Últimos 10 militares cadastrados — inclui todas as relações para o modal
   const ultimosMilitares = await prisma.policial.findMany({
     orderBy: { id: 'desc' },
     take: 10,
-    include: { subunidade: true }
+    include: {
+      subunidade: true,
+      funcaoAtual: true,
+      endereco: true,
+    }
   })
 
-  const calcularIdade = (data: Date | null) => {
-    if (!data) return 0;
-    const hoje = new Date();
-    let idade = hoje.getFullYear() - data.getFullYear();
-    const m = hoje.getMonth() - data.getMonth();
-    if (m < 0 || (m === 0 && hoje.getDate() < data.getDate())) {
-      idade--;
-    }
-    return idade;
-  };
+  const calcularIdade = (data: Date | null): number => {
+    if (!data) return 0
+    const hoje = new Date()
+    let idade = hoje.getFullYear() - data.getFullYear()
+    const m = hoje.getMonth() - data.getMonth()
+    if (m < 0 || (m === 0 && hoje.getDate() < data.getDate())) idade--
+    return idade
+  }
 
-  const getGrauSigla = (grau: string | null | undefined) => {
-    if (!grau) return "";
-    const siglas: Record<string, string> = {
-      SOLDADO: "SD", CABO: "CB", SARGENTO: "SGT", SUBTENENTE: "SUB TEN",
-      TENENTE: "TEN", CAPITAO: "CAP", MAJOR: "MAJ", TENENTE_CORONEL: "TEN CEL", CORONEL: "CEL", none: ""
-    };
-    return siglas[grau] || "";
-  };
-
-  const policiaisProps = ultimosMilitares.map(p => {
-    const sigla = getGrauSigla(p.grauHierarquico);
-    const guerra = p.nomeGuerra || p.nomeCompleto.split(' ')[0];
-    const cracha = `${sigla}${sigla ? " PM " : ""}${guerra}`.trim();
-
-    return {
-      id: p.id,
-      nomeGuerra: cracha,
-      matricula: p.matricula,
-      companhia: p.subunidade?.nome ?? 'Sem Cia',
-      status: p.status ?? 'pronto',
-      idade: calcularIdade(p.dataNascimento as Date | null),
-      // @ts-ignore - Prisma Types Cache
-      imagemUrl: (p as any).imagemUrl
-    };
-  });
+  // Passa o objeto completo + campo calculado `idade`
+  const policiaisProps = ultimosMilitares.map(p => ({
+    ...p,
+    idade: calcularIdade(p.dataNascimento as Date | null),
+  }))
 
   return (
     <div className="min-h-screen bg-[#7f6e59]">
@@ -136,7 +118,7 @@ export default async function DashboardHome() {
 
         <section className="grid lg:grid-cols-[1fr_300px] gap-8 items-start">
           <div className="order-2 lg:order-1">
-            <PoliceGrid policiais={policiaisProps} />
+            <PoliceGrid policiais={policiaisProps as any[]} />
           </div>
           <div className="order-1 lg:order-2 lg:sticky lg:top-24">
             <QuickAccess />

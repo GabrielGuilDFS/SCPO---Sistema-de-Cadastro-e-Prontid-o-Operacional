@@ -25,13 +25,6 @@ const shortcuts = [
     icon: History,
     color: "bg-[#97836a]",
     url: "#"
-  },
-  {
-    title: "Endereços/Dependentes",
-    description: "Cadastro familiar e contato",
-    icon: Home,
-    color: "bg-[#97836a]",
-    url: "#"
   }
 ]
 

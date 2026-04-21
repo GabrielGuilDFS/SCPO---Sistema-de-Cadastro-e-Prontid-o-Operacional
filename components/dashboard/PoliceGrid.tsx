@@ -10,6 +10,7 @@ interface Police {
   companhia: string;
   status: string;
   idade: number;
+  imagemUrl?: string | null;
 }
 
 interface PoliceGridProps {
@@ -28,17 +29,16 @@ export function PoliceGrid({ policiais }: PoliceGridProps) {
                 {/* Avatar e Dot de Status */}
                 <div className="relative">
                   <Avatar className="h-12 w-12 border-2 border-black shadow-sm">
-                    <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${policial.nomeGuerra}&backgroundColor=97836a`} />
+                    <AvatarImage src={policial.imagemUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${policial.nomeGuerra}&backgroundColor=97836a`} className="object-cover" />
                     <AvatarFallback>{policial.nomeGuerra.substring(0, 2)}</AvatarFallback>
                   </Avatar>
-                  <span 
-                    className={`absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white ${
-                      policial.status === 'pronto' ? 'bg-emerald-500' : 'bg-rose-500'
-                    }`}
+                  <span
+                    className={`absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white ${policial.status === 'pronto' ? 'bg-emerald-500' : 'bg-rose-500'
+                      }`}
                     title={policial.status === 'pronto' ? 'Em Prontidão' : 'Afastado'}
                   />
                 </div>
-                
+
                 {/* Informações Principais */}
                 <div className="flex flex-col flex-1">
                   <span className="font-bold text-slate-700 text-sm group-hover:text-[#97836a] transition-colors">

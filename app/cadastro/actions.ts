@@ -17,23 +17,21 @@ export async function cadastrarUsuario(formData: FormData) {
     try {
         const hashedSenha = await bcrypt.hash(senha, 10);
 
-        // Transação: Cria o Policial e o Login juntos
-        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-            const novoPolicial = await tx.policial.create({
-                data: {
-                    nomeCompleto,
-                    matricula,
-                },
-            });
+        const policialExistente = await prisma.policial.findUnique({
+            where: { matricula }
+        });
 
-            await tx.login.create({
-                data: {
-                    policialId: novoPolicial.id,
-                    matricula,
-                    senhaHash: hashedSenha,
-                    perfilAcesso: "OPERADOR",
-                },
-            });
+        if (!policialExistente) {
+            return { success: false, message: "Policial não encontrado no sistema. Cadastre os dados no RH primeiro." };
+        }
+
+        await prisma.login.create({
+            data: {
+                policialId: policialExistente.id,
+                matricula,
+                senhaHash: hashedSenha,
+                perfilAcesso: "OPERADOR",
+            },
         });
 
         return { success: true, message: "Cadastro realizado com sucesso!" };

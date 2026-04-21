@@ -10,7 +10,6 @@ export default async function DashboardHome() {
   const session = await getServerSession(authOptions)
   const nomeUsuario = session?.user?.name || "Comandante"
 
-  // Busca dados reais do banco
   const efetivoTotal = await prisma.policial.count()
 
   if (efetivoTotal === 0) {
@@ -65,14 +64,42 @@ export default async function DashboardHome() {
     include: { subunidade: true }
   })
 
-  const policiaisProps = ultimosMilitares.map(p => ({
-    id: p.id,
-    nomeGuerra: p.nomeGuerra ?? p.nomeCompleto,
-    matricula: p.matricula,
-    companhia: p.subunidade?.nome ?? 'Sem Cia',
-    status: p.status ?? 'pronto',
-    idade: p.idade ?? 0
-  }))
+  const calcularIdade = (data: Date | null) => {
+    if (!data) return 0;
+    const hoje = new Date();
+    let idade = hoje.getFullYear() - data.getFullYear();
+    const m = hoje.getMonth() - data.getMonth();
+    if (m < 0 || (m === 0 && hoje.getDate() < data.getDate())) {
+      idade--;
+    }
+    return idade;
+  };
+
+  const getGrauSigla = (grau: string | null | undefined) => {
+    if (!grau) return "";
+    const siglas: Record<string, string> = {
+      SOLDADO: "SD", CABO: "CB", SARGENTO: "SGT", SUBTENENTE: "SUB TEN",
+      TENENTE: "TEN", CAPITAO: "CAP", MAJOR: "MAJ", TENENTE_CORONEL: "TEN CEL", CORONEL: "CEL", none: ""
+    };
+    return siglas[grau] || "";
+  };
+
+  const policiaisProps = ultimosMilitares.map(p => {
+    const sigla = getGrauSigla(p.grauHierarquico);
+    const guerra = p.nomeGuerra || p.nomeCompleto.split(' ')[0];
+    const cracha = `${sigla}${sigla ? " PM " : ""}${guerra}`.trim();
+
+    return {
+      id: p.id,
+      nomeGuerra: cracha,
+      matricula: p.matricula,
+      companhia: p.subunidade?.nome ?? 'Sem Cia',
+      status: p.status ?? 'pronto',
+      idade: calcularIdade(p.dataNascimento as Date | null),
+      // @ts-ignore - Prisma Types Cache
+      imagemUrl: (p as any).imagemUrl
+    };
+  });
 
   return (
     <div className="min-h-screen bg-[#7f6e59]">

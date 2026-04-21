@@ -9,7 +9,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum PerfilAcesso {
@@ -18,6 +17,74 @@ enum PerfilAcesso {
   VISUALIZADOR
 
   @@map("perfil_acesso")
+}
+
+enum CnhCategoria {
+  A
+  B
+  C
+  D
+  E
+  AB
+  AC
+  AD
+  AE
+
+  @@map("cnh_categoria")
+}
+
+enum GrauHierarquico {
+  SOLDADO
+  CABO
+  SARGENTO
+  SUBTENENTE
+  TENENTE
+  CAPITAO
+  MAJOR
+  TENENTE_CORONEL
+  CORONEL
+
+  @@map("grau_hierarquico")
+}
+
+enum Sexo {
+  MASCULINO
+  FEMININO
+
+  @@map("sexo")
+}
+
+enum TipoSanguineo {
+  A_POSITIVO   @map("A+")
+  A_NEGATIVO   @map("A-")
+  B_POSITIVO   @map("B+")
+  B_NEGATIVO   @map("B-")
+  AB_POSITIVO  @map("AB+")
+  AB_NEGATIVO  @map("AB-")
+  O_POSITIVO   @map("O+")
+  O_NEGATIVO   @map("O-")
+
+  @@map("tipo_sanguineo")
+}
+
+enum EstadoCivil {
+  SOLTEIRO
+  CASADO
+  DIVORCIADO
+  VIUVO
+
+  @@map("estado_civil")
+}
+
+enum Escolaridade {
+  FUNDAMENTAL
+  MEDIO
+  SUPERIOR
+  POS_GRADUACAO
+  MESTRADO
+  DOUTORADO
+
+  @@map("escolaridade")
 }
 
 model Login {
@@ -51,19 +118,54 @@ model FuncaoAtual {
   @@map("funcao_atual")
 }
 
-model Policial {
-  id            Int          @id @default(autoincrement())
-  nomeCompleto  String       @map("nome_completo")
-  nomeGuerra    String?      @map("nome_guerra")
-  matricula     String       @unique
-  idade         Int?
-  status        String?      @default("pronto")
-
-  subunidadeId  Int?         @map("subunidade_id")
-  subunidade    Subunidade?  @relation(fields: [subunidadeId], references: [id])
+model Endereco {
+  id         Int        @id @default(autoincrement())
+  logradouro String?
+  numero     String?
+  bairro     String?
+  cidade     String?
+  estado     String?
+  cep        String?
   
-  funcaoAtualId Int?         @map("funcao_atual_id")
-  funcaoAtual   FuncaoAtual? @relation(fields: [funcaoAtualId], references: [id])
+  policiais  Policial[]
+
+  @@map("endereco")
+}
+
+model Policial {
+  id              Int          @id @default(autoincrement())
+  nomeCompleto    String       @map("nome_completo")
+  nomeGuerra      String?      @map("nome_guerra")
+  matricula       String       @unique
+  cpf             String       @unique @db.Char(11)
+  rg              String
+  cnhCategoria    CnhCategoria? @map("cnh_categoria")
+  cnhNumero       String?       @map("cnh_numero") @db.VarChar(20)
+  dataAdmissao    DateTime      @map("data_admissao") @db.Date
+  grauHierarquico GrauHierarquico? @map("grau_hierarquico")
+  possuiPlanoSaude Boolean?     @default(false) @map("possui_plano_saude")
+  dataNascimento  DateTime      @map("data_nascimento") @db.Date
+  sexo            Sexo?
+  tipoSanguineo   TipoSanguineo? @map("tipo_sanguineo")
+  estadoCivil     EstadoCivil?   @map("estado_civil")
+  escolaridade    Escolaridade?
+  religiosidade   String?
+  telefonePrimario String       @map("telefone_primario")
+  telefoneSecundario String?    @map("telefone_secundario")
+  email           String?
+  observacoes     String?       @db.Text
+  idade           Int?
+  status          String?      @default("pronto")
+  imagemUrl       String?      @map("imagem_url") @db.VarChar(255)
+
+  enderecoId      Int?         @unique @map("endereco_id")
+  endereco        Endereco?    @relation(fields: [enderecoId], references: [id])
+
+  subunidadeId    Int?         @map("subunidade_id")
+  subunidade      Subunidade?  @relation(fields: [subunidadeId], references: [id])
+  
+  funcaoAtualId   Int?         @map("funcao_atual_id")
+  funcaoAtual     FuncaoAtual? @relation(fields: [funcaoAtualId], references: [id])
 
   login Login?
 

@@ -10,7 +10,6 @@ export default async function DashboardHome() {
   const session = await getServerSession(authOptions)
   const nomeUsuario = session?.user?.name || "Comandante"
 
-  // Busca dados reais do banco
   const efetivoTotal = await prisma.policial.count()
 
   if (efetivoTotal === 0) {
@@ -58,20 +57,30 @@ export default async function DashboardHome() {
     }
   })
 
-  // Últimos 10 militares cadastrados
+  // Últimos 10 militares cadastrados — inclui todas as relações para o modal
   const ultimosMilitares = await prisma.policial.findMany({
     orderBy: { id: 'desc' },
     take: 10,
-    include: { subunidade: true }
+    include: {
+      subunidade: true,
+      funcaoAtual: true,
+      endereco: true,
+    }
   })
 
+  const calcularIdade = (data: Date | null): number => {
+    if (!data) return 0
+    const hoje = new Date()
+    let idade = hoje.getFullYear() - data.getFullYear()
+    const m = hoje.getMonth() - data.getMonth()
+    if (m < 0 || (m === 0 && hoje.getDate() < data.getDate())) idade--
+    return idade
+  }
+
+  // Passa o objeto completo + campo calculado `idade`
   const policiaisProps = ultimosMilitares.map(p => ({
-    id: p.id,
-    nomeGuerra: p.nomeGuerra ?? p.nomeCompleto,
-    matricula: p.matricula,
-    companhia: p.subunidade?.nome ?? 'Sem Cia',
-    status: p.status ?? 'pronto',
-    idade: p.idade ?? 0
+    ...p,
+    idade: calcularIdade(p.dataNascimento as Date | null),
   }))
 
   return (
@@ -109,7 +118,7 @@ export default async function DashboardHome() {
 
         <section className="grid lg:grid-cols-[1fr_300px] gap-8 items-start">
           <div className="order-2 lg:order-1">
-            <PoliceGrid policiais={policiaisProps} />
+            <PoliceGrid policiais={policiaisProps as any[]} />
           </div>
           <div className="order-1 lg:order-2 lg:sticky lg:top-24">
             <QuickAccess />

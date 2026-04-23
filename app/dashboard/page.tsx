@@ -10,7 +10,14 @@ export default async function DashboardHome() {
   const session = await getServerSession(authOptions)
   const nomeUsuario = session?.user?.name || "Comandante"
 
-  const efetivoTotal = await prisma.policial.count()
+  const activeFilter = {
+    AND: [
+      { status: { not: 'INATIVO' } },
+      { OR: [ { login: null }, { login: { statusAtivo: true } } ] }
+    ]
+  }
+
+  const efetivoTotal = await prisma.policial.count({ where: activeFilter })
 
   if (efetivoTotal === 0) {
     return (
@@ -37,15 +44,27 @@ export default async function DashboardHome() {
     )
   }
 
-  const emProntidao = await prisma.policial.count({ where: { status: 'pronto' } })
-  const afastados = await prisma.policial.count({ where: { status: { not: 'pronto' } } }) // Ou especifique os status de afastamento se precisar
-
-  const distribuicaoBruta = await prisma.policial.groupBy({
-    by: ['subunidadeId'],
-    _count: { id: true }
+  const emProntidao = await prisma.policial.count({ 
+    where: { 
+      ...activeFilter,
+      status: 'pronto' 
+    } 
   })
+  const afastados = await prisma.policial.count({ 
+    where: { 
+      ...activeFilter,
+      status: { not: 'pronto' } 
+    } 
+  }) 
 
-  const subunidades = await prisma.subunidade.findMany()
+  const [distribuicaoBruta, subunidades, funcoes] = await Promise.all([
+    prisma.policial.groupBy({
+      by: ['subunidadeId'],
+      _count: { id: true }
+    }),
+    prisma.subunidade.findMany({ orderBy: { nome: 'asc' } }),
+    prisma.funcaoAtual.findMany({ orderBy: { nome: 'asc' } })
+  ])
   const cores = ['#97836a', '#544634', '#cbd5e1', '#000000', '#f59e0b']
 
   const distribuicaoData = distribuicaoBruta.map((item, index) => {
@@ -59,12 +78,14 @@ export default async function DashboardHome() {
 
   // Últimos 10 militares cadastrados — inclui todas as relações para o modal
   const ultimosMilitares = await prisma.policial.findMany({
+    where: activeFilter,
     orderBy: { id: 'desc' },
     take: 10,
     include: {
       subunidade: true,
       funcaoAtual: true,
       endereco: true,
+      login: true,
     }
   })
 
@@ -118,7 +139,11 @@ export default async function DashboardHome() {
 
         <section className="grid lg:grid-cols-[1fr_300px] gap-8 items-start">
           <div className="order-2 lg:order-1">
-            <PoliceGrid policiais={policiaisProps as any[]} />
+            <PoliceGrid 
+              policiais={policiaisProps as any[]} 
+              subunidades={subunidades}
+              funcoes={funcoes}
+            />
           </div>
           <div className="order-1 lg:order-2 lg:sticky lg:top-24">
             <QuickAccess />

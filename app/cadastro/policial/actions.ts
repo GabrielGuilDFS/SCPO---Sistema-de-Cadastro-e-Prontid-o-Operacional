@@ -83,3 +83,122 @@ export async function salvarDadosPolicial(data: PolicialFormData) {
     return { success: false, message: error.message || "Erro interno ao cadastrar policial." };
   }
 }
+
+export async function atualizarPolicial(id: number, data: PolicialFormData) {
+  try {
+    const validData = policialFormSchema.parse(data);
+
+    const updateData: Prisma.PolicialUpdateInput = {
+      nomeCompleto: validData.nomeCompleto,
+      nomeGuerra: validData.nomeGuerra || null,
+      cpf: validData.cpf,
+      rg: validData.rg,
+      matricula: validData.matricula,
+      cnhCategoria: validData.cnhCategoria,
+      cnhNumero: validData.cnhNumero || null,
+      dataAdmissao: new Date(validData.dataAdmissao),
+      grauHierarquico: validData.grauHierarquico,
+      possuiPlanoSaude: validData.possuiPlanoSaude,
+      dataNascimento: new Date(validData.dataNascimento),
+      sexo: validData.sexo,
+      tipoSanguineo: validData.tipoSanguineo,
+      estadoCivil: validData.estadoCivil,
+      escolaridade: validData.escolaridade,
+      religiosidade: validData.religiosidade || null,
+      telefonePrimario: validData.telefonePrimario,
+      telefoneSecundario: validData.telefoneSecundario || null,
+      email: validData.email || null,
+      observacoes: validData.observacoes || null,
+      imagemUrl: typeof validData.imagemUrl === 'string' ? validData.imagemUrl : null,
+    };
+
+    if (validData.subunidadeId && validData.subunidadeId !== 'none') {
+      updateData.subunidade = { connect: { id: parseInt(validData.subunidadeId) } };
+    } else {
+      updateData.subunidade = { disconnect: true };
+    }
+
+    if (validData.funcaoAtualId && validData.funcaoAtualId !== 'none') {
+      updateData.funcaoAtual = { connect: { id: parseInt(validData.funcaoAtualId) } };
+    } else {
+      updateData.funcaoAtual = { disconnect: true };
+    }
+
+    if (validData.logradouro || validData.cep) {
+      updateData.endereco = {
+        upsert: {
+          create: {
+            logradouro: validData.logradouro || null,
+            numero: validData.numero || null,
+            bairro: validData.bairro || null,
+            cidade: validData.cidade || null,
+            estado: validData.estado || null,
+            cep: validData.cep || null,
+          },
+          update: {
+            logradouro: validData.logradouro || null,
+            numero: validData.numero || null,
+            bairro: validData.bairro || null,
+            cidade: validData.cidade || null,
+            estado: validData.estado || null,
+            cep: validData.cep || null,
+          }
+        }
+      };
+    }
+
+    const policial = await prisma.policial.update({
+      where: { id },
+      data: updateData
+    });
+
+    revalidatePath('/dashboard', 'layout');
+
+    return { success: true, message: "Policial atualizado com sucesso!", data: policial };
+  } catch (error: any) {
+    console.error("Erro ao atualizar policial:", error);
+    return { success: false, message: error.message || "Erro interno ao atualizar policial." };
+  }
+}
+
+export async function desativarPolicial(policialId: number) {
+  try {
+    await prisma.$transaction([
+      prisma.policial.update({
+        where: { id: policialId },
+        data: { status: 'INATIVO' }
+      }),
+      prisma.login.updateMany({
+        where: { policialId },
+        data: { statusAtivo: false }
+      })
+    ]);
+
+    revalidatePath('/dashboard');
+    return { success: true, message: "Policial desativado com sucesso!" };
+  } catch (error: any) {
+    console.error("Erro ao desativar policial:", error);
+    return { success: false, message: "Erro ao desativar policial." };
+  }
+}
+
+export async function ativarPolicial(policialId: number) {
+  try {
+    await prisma.$transaction([
+      prisma.policial.update({
+        where: { id: policialId },
+        data: { status: 'pronto' }
+      }),
+      prisma.login.updateMany({
+        where: { policialId },
+        data: { statusAtivo: true }
+      })
+    ]);
+
+    revalidatePath('/dashboard');
+    return { success: true, message: "Policial reativado com sucesso!" };
+  } catch (error: any) {
+    console.error("Erro ao reativar policial:", error);
+    return { success: false, message: "Erro ao reativar policial." };
+  }
+}

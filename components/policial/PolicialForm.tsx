@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useState, useEffect, useRef } from "react"
 import { Camera } from "lucide-react"
-import { salvarDadosPolicial } from "@/app/cadastro/policial/actions"
+import { salvarDadosPolicial, atualizarPolicial } from "@/app/cadastro/policial/actions"
 import { uploadImage } from "@/app/cadastro/policial/uploadAction"
 
 const maskCpf = (value: string) => {
@@ -87,9 +87,11 @@ const SELECT_LABELS: Record<string, string> = {
 interface PolicialFormProps {
   subunidades?: { id: number; nome: string }[];
   funcoes?: { id: number; nome: string }[];
+  initialData?: any;
+  onSuccess?: () => void;
 }
 
-export function PolicialForm({ subunidades = [], funcoes = [] }: PolicialFormProps) {
+export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSuccess }: PolicialFormProps) {
   const [activeTab, setActiveTab] = useState("aba-1")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [apiMessage, setApiMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -97,35 +99,35 @@ export function PolicialForm({ subunidades = [], funcoes = [] }: PolicialFormPro
   const form = useForm<z.input<typeof policialFormSchema>, any, z.infer<typeof policialFormSchema>>({
     resolver: zodResolver(policialFormSchema),
     defaultValues: {
-      nomeCompleto: "",
-      nomeGuerra: "",
-      cpf: "",
-      rg: "",
-      matricula: "",
-      cnhCategoria: "none",
-      cnhNumero: "",
-      dataAdmissao: "",
-      possuiPlanoSaude: false,
-      dataNascimento: "",
-      religiosidade: "",
-      sexo: "none",
-      estadoCivil: "none",
-      tipoSanguineo: "none",
-      grauHierarquico: "none",
-      escolaridade: "none",
-      telefonePrimario: "",
-      telefoneSecundario: "",
-      email: "",
-      observacoes: "",
-      imagemUrl: "",
-      subunidadeId: "none",
-      funcaoAtualId: "none",
-      logradouro: "",
-      numero: "",
-      bairro: "",
-      cidade: "",
-      estado: "",
-      cep: "",
+      nomeCompleto: initialData?.nomeCompleto || "",
+      nomeGuerra: initialData?.nomeGuerra || "",
+      cpf: initialData?.cpf || "",
+      rg: initialData?.rg || "",
+      matricula: initialData?.matricula || "",
+      cnhCategoria: initialData?.cnhCategoria || "none",
+      cnhNumero: initialData?.cnhNumero || "",
+      dataAdmissao: initialData?.dataAdmissao ? new Date(initialData.dataAdmissao).toISOString().split('T')[0] : "",
+      possuiPlanoSaude: initialData?.possuiPlanoSaude || false,
+      dataNascimento: initialData?.dataNascimento ? new Date(initialData.dataNascimento).toISOString().split('T')[0] : "",
+      religiosidade: initialData?.religiosidade || "",
+      sexo: initialData?.sexo || "none",
+      estadoCivil: initialData?.estadoCivil || "none",
+      tipoSanguineo: initialData?.tipoSanguineo || "none",
+      grauHierarquico: initialData?.grauHierarquico || "none",
+      escolaridade: initialData?.escolaridade || "none",
+      telefonePrimario: initialData?.telefonePrimario || "",
+      telefoneSecundario: initialData?.telefoneSecundario || "",
+      email: initialData?.email || "",
+      observacoes: initialData?.observacoes || "",
+      imagemUrl: initialData?.imagemUrl || "",
+      subunidadeId: initialData?.subunidadeId?.toString() || "none",
+      funcaoAtualId: initialData?.funcaoAtualId?.toString() || "none",
+      logradouro: initialData?.endereco?.logradouro || "",
+      numero: initialData?.endereco?.numero || "",
+      bairro: initialData?.endereco?.bairro || "",
+      cidade: initialData?.endereco?.cidade || "",
+      estado: initialData?.endereco?.estado || "",
+      cep: initialData?.endereco?.cep || "",
     },
   })
 
@@ -212,11 +214,19 @@ export function PolicialForm({ subunidades = [], funcoes = [] }: PolicialFormPro
 
       const payload = { ...data, imagemUrl: finalImageUrl }
 
-      const response = await salvarDadosPolicial(payload)
+      const response = initialData 
+        ? await atualizarPolicial(initialData.id, payload)
+        : await salvarDadosPolicial(payload)
+
       if (response.success) {
         setApiMessage({ type: 'success', text: response.message })
-        form.reset()
-        setPreviewUrl(null)
+        if (!initialData) {
+          form.reset()
+          setPreviewUrl(null)
+        }
+        if (onSuccess) {
+          setTimeout(onSuccess, 1500)
+        }
       } else {
         setApiMessage({ type: 'error', text: response.message })
       }
@@ -242,8 +252,10 @@ export function PolicialForm({ subunidades = [], funcoes = [] }: PolicialFormPro
     <div className="bg-white p-6 rounded-xl shadow-md border-2 border-slate-100">
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Cadastro de Policial</h2>
-          <p className="text-slate-500 text-sm">Insira as informações do novo integrante na corporação.</p>
+          <h2 className="text-2xl font-bold text-slate-800">{initialData ? 'Editar Policial' : 'Cadastro de Policial'}</h2>
+          <p className="text-slate-500 text-sm">
+            {initialData ? 'Atualize as informações do militar no sistema.' : 'Insira as informações do novo integrante na corporação.'}
+          </p>
         </div>
         {previewCracha && (
           <div className="flex items-center px-6 py-2 bg-[#cca471] rounded-lg shadow-sm border border-[#97836a] shrink-0">
@@ -749,7 +761,7 @@ export function PolicialForm({ subunidades = [], funcoes = [] }: PolicialFormPro
                   Voltar
                 </Button>
                 <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto px-8 bg-[#97836a] hover:bg-[#7f6e59] text-white">
-                  {isSubmitting ? "Salvando..." : "Finalizar Cadastro"}
+                  {isSubmitting ? "Salvando..." : (initialData ? "Salvar Alterações" : "Finalizar Cadastro")}
                 </Button>
               </div>
             </TabsContent>

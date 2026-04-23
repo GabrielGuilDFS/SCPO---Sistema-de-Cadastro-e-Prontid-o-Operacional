@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
-import { User, Lock, Eye, BotMessageSquare } from "lucide-react"
+import { User, Lock, Eye, EyeOff, BotMessageSquare } from "lucide-react"
 
 export default function LoginSCPO() {
   const router = useRouter()
@@ -16,6 +16,7 @@ export default function LoginSCPO() {
   const [matricula, setMatricula] = useState("")
   const [senha, setSenha] = useState("")
   const [erro, setErro] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleMatriculaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, "") // Remove tudo que não é número
@@ -100,14 +101,20 @@ export default function LoginSCPO() {
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 h-6 w-6 -translate-y-1/2 text-[#97836a]" />
               <Input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)} // Salva a senha
                 placeholder="Digite sua senha..."
                 className="w-full rounded-md border border-slate-500 bg-transparent pl-12 pr-12 py-6 text-lg text-[#000000] placeholder:text-slate-400 focus:border-[#97836a] focus-visible:ring-1 focus-visible:ring-[#97836a]"
               />
-              <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 h-10 w-10 -translate-y-1/2 text-slate-500 hover:bg-transparent hover:text-[#97836a]">
-                <Eye className="h-6 w-6" />
+              <Button 
+                type="button" 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-1 top-1/2 h-10 w-10 -translate-y-1/2 text-slate-500 hover:bg-transparent hover:text-[#97836a]"
+              >
+                {showPassword ? <EyeOff className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
               </Button>
             </div>
 
@@ -116,18 +123,6 @@ export default function LoginSCPO() {
               <a href="#" className="text-sm font-medium text-[#97836a] hover:text-[#7f6e59]">
                 Esqueceu a senha?
               </a>
-            </div>
-
-            {/* Placeholder para o reCAPTCHA v2 */}
-            <div className="flex h-16 w-full items-center justify-between rounded border border-slate-300 bg-slate-50 p-3 shadow-sm mt-4">
-              <div className="flex items-center gap-3">
-                <Checkbox id="recaptcha-check" className="h-6 w-6 border-2 border-slate-400 rounded-sm focus-visible:ring-0" />
-                <label htmlFor="recaptcha-check" className="text-sm font-medium text-[#000000]">Não sou um robô</label>
-              </div>
-              <div className="flex flex-col items-center justify-center text-slate-500 ml-4">
-                <BotMessageSquare className="h-7 w-7 text-slate-400" />
-                <p className="text-[10px] mt-1">reCAPTCHA</p>
-              </div>
             </div>
 
             {/* Manter-se conectado */}
@@ -145,14 +140,6 @@ export default function LoginSCPO() {
               </Button>
             </div>
           </form>
-
-          {/* Seção Inferior */}
-          <div className="text-center text-sm text-[#000000] pt-2">
-            Ainda não tem cadastro? {' '}
-            <a href="/cadastro" className="font-semibold text-[#97836a] hover:text-[#7f6e59]">
-              Cadastrar-se
-            </a>
-          </div>
         </CardContent>
       </Card>
     </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { ArrowRightLeft, History, Home, UserPlus } from "lucide-react"
+import { ArrowRightLeft, History, Home, UserPlus, UserX } from "lucide-react"
 import Link from "next/link"
 
 const shortcuts = [
@@ -25,6 +25,13 @@ const shortcuts = [
     icon: History,
     color: "bg-[#97836a]",
     url: "#"
+  },
+  {
+    title: "Agentes Inativos",
+    description: "Gestão de baixas e reativação",
+    icon: UserX,
+    color: "bg-[#7f6e59]",
+    url: "/dashboard/policiais-inativos"
   }
 ]
 

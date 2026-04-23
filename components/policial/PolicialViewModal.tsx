@@ -9,7 +9,21 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ShieldCheck } from "lucide-react"
+import { ShieldCheck, UserX, Power, CheckCircle2, AlertCircle, Edit } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react"
+import { desativarPolicial, ativarPolicial } from "@/app/cadastro/policial/actions"
+import { PolicialForm } from "./PolicialForm"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -19,6 +33,8 @@ interface PolicialViewModalProps {
   isOpen: boolean
   onClose: () => void
   policial: any | null
+  subunidades?: { id: number; nome: string }[]
+  funcoes?: { id: number; nome: string }[]
 }
 
 // ---------------------------------------------------------------------------
@@ -110,8 +126,38 @@ export function PolicialViewModal({
   isOpen,
   onClose,
   policial,
+  subunidades = [],
+  funcoes = []
 }: PolicialViewModalProps) {
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+
+  // Reset isEditing when modal opens/closes or policial changes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsEditing(false)
+    }
+  }, [isOpen, policial])
+
   if (!policial) return null
+
+  const isAtivo = policial.status !== 'INATIVO' && (policial.login?.statusAtivo ?? true)
+
+  const handleToggleStatus = async () => {
+    setIsLoading(true)
+    const result = isAtivo 
+      ? await desativarPolicial(policial.id)
+      : await ativarPolicial(policial.id)
+    
+    setIsLoading(false)
+    setIsConfirmOpen(false)
+    if (result.success) {
+      onClose()
+    } else {
+      alert(result.message)
+    }
+  }
 
   const sigla = GRAU_SIGLA[policial.grauHierarquico ?? ""] ?? ""
   const guerra = policial.nomeGuerra || policial.nomeCompleto?.split(" ")[0] || ""
@@ -143,14 +189,25 @@ export function PolicialViewModal({
               {/* Crachá */}
               <DialogTitle className="text-xl font-bold tracking-wide text-white leading-tight flex items-center gap-2">
                 {cracha || policial.nomeCompleto}
-                {policial.status === "afastado" && (
-                  <Badge
-                    variant="destructive"
-                    className="text-[10px] h-4 uppercase tracking-wider"
-                  >
-                    Afastado
-                  </Badge>
-                )}
+                <div className="flex gap-2">
+                  {policial.status === "afastado" && (
+                    <Badge
+                      variant="destructive"
+                      className="text-[10px] h-4 uppercase tracking-wider"
+                    >
+                      Afastado
+                    </Badge>
+                  )}
+                  {isAtivo ? (
+                    <Badge className="bg-emerald-500 hover:bg-emerald-600 text-[10px] h-4 uppercase tracking-wider border-none">
+                      Conta Ativa
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="bg-slate-500 text-white text-[10px] h-4 uppercase tracking-wider border-none">
+                      Inativo
+                    </Badge>
+                  )}
+                </div>
               </DialogTitle>
 
               {/* Matrícula e Subunidade */}
@@ -172,155 +229,224 @@ export function PolicialViewModal({
 
         {/* ── Corpo com Abas ────────────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto bg-white">
-          <Tabs defaultValue="identificacao" className="w-full">
-            <TabsList className="w-full grid grid-cols-4 rounded-none border-b border-slate-100 bg-slate-50 h-auto p-0">
-              {[
-                { value: "identificacao", label: "Identificação" },
-                { value: "profissional", label: "Profissional" },
-                { value: "contato", label: "Contato" },
-                { value: "observacoes", label: "Observações" },
-              ].map((tab) => (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  className="rounded-none border-b-2 border-transparent py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 data-active:border-[#cca471] data-active:text-[#3c342a] data-active:bg-white data-active:shadow-none hover:text-slate-700"
-                >
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+          {isEditing ? (
+            <div className="p-0">
+              <PolicialForm 
+                initialData={policial} 
+                subunidades={subunidades} 
+                funcoes={funcoes}
+                onSuccess={() => {
+                  setIsEditing(false)
+                  onClose()
+                }}
+              />
+            </div>
+          ) : (
+            <Tabs defaultValue="identificacao" className="w-full">
+              <TabsList className="w-full grid grid-cols-4 rounded-none border-b border-slate-100 bg-slate-50 h-auto p-0">
+                {[
+                  { value: "identificacao", label: "Identificação" },
+                  { value: "profissional", label: "Profissional" },
+                  { value: "contato", label: "Contato" },
+                  { value: "observacoes", label: "Observações" },
+                ].map((tab) => (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="rounded-none border-b-2 border-transparent py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 data-active:border-[#cca471] data-active:text-[#3c342a] data-active:bg-white data-active:shadow-none hover:text-slate-700"
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
 
-            {/* ── Aba 1: Identificação ──────────────────────────────────── */}
-            <TabsContent value="identificacao" className="p-6 focus:outline-none">
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="text-base font-semibold text-slate-800">
-                  Dados Pessoais
+              {/* ── Aba 1: Identificação ──────────────────────────────────── */}
+              <TabsContent value="identificacao" className="p-6 focus:outline-none">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-base font-semibold text-slate-800">
+                    Dados Pessoais
+                  </h3>
+                  {policial.possuiPlanoSaude && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700">
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      Possui Plano de Saúde
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
+                  <Field label="Nome Completo" value={policial.nomeCompleto} />
+                  <Field label="Nome de Guerra" value={policial.nomeGuerra} />
+                  <Field label="CPF" value={formatCpf(policial.cpf)} />
+                  <Field label="RG" value={policial.rg} />
+                  <Field
+                    label="Data de Nascimento"
+                    value={formatDate(policial.dataNascimento)}
+                  />
+
+                  <Field label="Sexo" value={policial.sexo} />
+                  <Field
+                    label="Tipo Sanguíneo"
+                    value={formatTipoSanguineo(policial.tipoSanguineo)}
+                  />
+                  <Field label="Estado Civil" value={policial.estadoCivil} />
+
+                  <Field
+                    label="Escolaridade"
+                    value={policial.escolaridade?.replace(/_/g, " ")}
+                  />
+                  <Field label="Religiosidade" value={policial.religiosidade} />
+                </div>
+              </TabsContent>
+
+              {/* ── Aba 2: Profissional ───────────────────────────────────── */}
+              <TabsContent value="profissional" className="p-6 focus:outline-none">
+                <h3 className="text-base font-semibold text-slate-800 mb-5">
+                  Lotação e Dados Funcionais
                 </h3>
-                {policial.possuiPlanoSaude && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700">
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    Possui Plano de Saúde
-                  </span>
-                )}
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
-                <Field label="Nome Completo" value={policial.nomeCompleto} />
-                <Field label="Nome de Guerra" value={policial.nomeGuerra} />
-                <Field label="CPF" value={formatCpf(policial.cpf)} />
-                <Field label="RG" value={policial.rg} />
-                <Field
-                  label="Data de Nascimento"
-                  value={formatDate(policial.dataNascimento)}
-                />
-
-                <Field label="Sexo" value={policial.sexo} />
-                <Field
-                  label="Tipo Sanguíneo"
-                  value={formatTipoSanguineo(policial.tipoSanguineo)}
-                />
-                <Field label="Estado Civil" value={policial.estadoCivil} />
-
-                <Field
-                  label="Escolaridade"
-                  value={policial.escolaridade?.replace(/_/g, " ")}
-                />
-                <Field label="Religiosidade" value={policial.religiosidade} />
-              </div>
-            </TabsContent>
-
-            {/* ── Aba 2: Profissional ───────────────────────────────────── */}
-            <TabsContent value="profissional" className="p-6 focus:outline-none">
-              <h3 className="text-base font-semibold text-slate-800 mb-5">
-                Lotação e Dados Funcionais
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
-                <Field
-                  label="Subunidade (Lotação)"
-                  value={policial.subunidade?.nome ?? "Sem Sede / Não Informada"}
-                />
-                <Field
-                  label="Função Atual"
-                  value={policial.funcaoAtual?.nome ?? "Não Informada"}
-                />
-                <Field
-                  label="Data de Admissão"
-                  value={formatDate(policial.dataAdmissao)}
-                />
-              </div>
-
-              <div className="mt-8">
-                <div className="border-b border-slate-100 pb-3 mb-5">
-                  <h3 className="text-base font-semibold text-slate-800">
-                    Habilitação
-                  </h3>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
-                  <Field label="Categoria CNH" value={policial.cnhCategoria} />
-                  <Field label="Número CNH" value={policial.cnhNumero} />
-                </div>
-              </div>
-            </TabsContent>
-
-            {/* ── Aba 3: Contato ────────────────────────────────────────── */}
-            <TabsContent value="contato" className="p-6 focus:outline-none">
-              <h3 className="text-base font-semibold text-slate-800 mb-5">
-                Contatos
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-5">
-                <Field label="E-mail" value={policial.email} />
-                <Field label="Telefone Primário" value={formatPhone(policial.telefonePrimario)} />
-                <Field label="Telefone Secundário" value={formatPhone(policial.telefoneSecundario)} />
-              </div>
-
-              <div className="mt-8">
-                <div className="border-b border-slate-100 pb-3 mb-5">
-                  <h3 className="text-base font-semibold text-slate-800">
-                    Endereço
-                  </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
+                  <Field
+                    label="Subunidade (Lotação)"
+                    value={policial.subunidade?.nome ?? "Sem Sede / Não Informada"}
+                  />
+                  <Field
+                    label="Função Atual"
+                    value={policial.funcaoAtual?.nome ?? "Não Informada"}
+                  />
+                  <Field
+                    label="Data de Admissão"
+                    value={formatDate(policial.dataAdmissao)}
+                  />
                 </div>
 
-                {policial.endereco ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-5">
-                    <Field label="Logradouro" value={policial.endereco.logradouro} />
-                    <Field label="Número" value={policial.endereco.numero} />
-                    <Field label="Bairro" value={policial.endereco.bairro} />
-                    <Field label="Cidade" value={policial.endereco.cidade} />
-                    <Field label="Estado (UF)" value={policial.endereco.estado} />
-                    <Field label="CEP" value={formatCep(policial.endereco.cep)} />
+                <div className="mt-8">
+                  <div className="border-b border-slate-100 pb-3 mb-5">
+                    <h3 className="text-base font-semibold text-slate-800">
+                      Habilitação
+                    </h3>
                   </div>
-                ) : (
-                  <div className="rounded-lg bg-slate-50 border border-slate-100 p-6 text-center">
-                    <p className="text-sm text-slate-400">
-                      Nenhum endereço registrado.
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+                    <Field label="Categoria CNH" value={policial.cnhCategoria} />
+                    <Field label="Número CNH" value={policial.cnhNumero} />
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* ── Aba 3: Contato ────────────────────────────────────────── */}
+              <TabsContent value="contato" className="p-6 focus:outline-none">
+                <h3 className="text-base font-semibold text-slate-800 mb-5">
+                  Contatos
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-5">
+                  <Field label="E-mail" value={policial.email} />
+                  <Field label="Telefone Primário" value={formatPhone(policial.telefonePrimario)} />
+                  <Field label="Telefone Secundário" value={formatPhone(policial.telefoneSecundario)} />
+                </div>
+
+                <div className="mt-8">
+                  <div className="border-b border-slate-100 pb-3 mb-5">
+                    <h3 className="text-base font-semibold text-slate-800">
+                      Endereço
+                    </h3>
+                  </div>
+
+                  {policial.endereco ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-5">
+                      <Field label="Logradouro" value={policial.endereco.logradouro} />
+                      <Field label="Número" value={policial.endereco.numero} />
+                      <Field label="Bairro" value={policial.endereco.bairro} />
+                      <Field label="Cidade" value={policial.endereco.cidade} />
+                      <Field label="Estado (UF)" value={policial.endereco.estado} />
+                      <Field label="CEP" value={formatCep(policial.endereco.cep)} />
+                    </div>
+                  ) : (
+                    <div className="rounded-lg bg-slate-50 border border-slate-100 p-6 text-center">
+                      <p className="text-sm text-slate-400">
+                        Nenhum endereço registrado.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+
+              {/* ── Aba 4: Observações ────────────────────────────────────── */}
+              <TabsContent value="observacoes" className="p-6 focus:outline-none">
+                <h3 className="text-base font-semibold text-slate-800 mb-5">
+                  Observações e Histórico
+                </h3>
+                <div className="rounded-lg bg-slate-50 border border-slate-100 p-5 min-h-[180px]">
+                  {policial.observacoes ? (
+                    <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                      {policial.observacoes}
                     </p>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-
-            {/* ── Aba 4: Observações ────────────────────────────────────── */}
-            <TabsContent value="observacoes" className="p-6 focus:outline-none">
-              <h3 className="text-base font-semibold text-slate-800 mb-5">
-                Observações e Histórico
-              </h3>
-              <div className="rounded-lg bg-slate-50 border border-slate-100 p-5 min-h-[180px]">
-                {policial.observacoes ? (
-                  <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-                    {policial.observacoes}
-                  </p>
-                ) : (
-                  <p className="text-sm text-slate-400 italic text-center mt-10">
-                    Nenhuma observação registrada para este policial.
-                  </p>
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
+                  ) : (
+                    <p className="text-sm text-slate-400 italic text-center mt-10">
+                      Nenhuma observação registrada para este policial.
+                    </p>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+          )}
         </div>
+        <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+          <Button variant="outline" onClick={isEditing ? () => setIsEditing(false) : onClose} className="text-slate-600">
+            {isEditing ? "Cancelar Edição" : "Fechar"}
+          </Button>
+          
+          {!isEditing && (
+            <>
+              <Button 
+                variant="outline"
+                className="border-slate-300 text-slate-700 hover:bg-slate-100"
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit className="mr-2 h-4 w-4" /> Editar Perfil
+              </Button>
+
+              <Button 
+                variant={isAtivo ? "destructive" : "default"}
+                className={isAtivo ? "" : "bg-emerald-600 hover:bg-emerald-700 text-white"}
+                onClick={() => setIsConfirmOpen(true)}
+                disabled={isLoading}
+              >
+                {isAtivo ? (
+                  <><UserX className="mr-2 h-4 w-4" /> Desativar Agente</>
+                ) : (
+                  <><Power className="mr-2 h-4 w-4" /> Reativar Agente</>
+                )}
+              </Button>
+            </>
+          )}
+        </div>
+
+        <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+          <AlertDialogContent className="bg-white border-2 border-slate-200">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-[#3c342a] flex items-center gap-2">
+                {isAtivo ? <AlertCircle className="text-rose-500 h-5 w-5" /> : <CheckCircle2 className="text-emerald-500 h-5 w-5" />}
+                {isAtivo ? "Confirmar Desativação" : "Confirmar Reativação"}
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-slate-600">
+                {isAtivo 
+                  ? "Deseja realmente desativar este agente? O acesso ao sistema será bloqueado, mas os dados funcionais serão preservados para histórico."
+                  : "Deseja reativar o acesso deste agente ao sistema? Ele poderá realizar login novamente."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="border-slate-200 text-slate-500 hover:bg-slate-50">Cancelar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleToggleStatus}
+                className={isAtivo ? "bg-rose-600 hover:bg-rose-700 text-white" : "bg-emerald-600 hover:bg-emerald-700 text-white"}
+              >
+                {isLoading ? "Processando..." : (isAtivo ? "Desativar" : "Reativar")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   )

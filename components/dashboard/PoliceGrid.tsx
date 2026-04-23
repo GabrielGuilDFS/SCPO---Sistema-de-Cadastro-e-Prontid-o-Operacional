@@ -10,7 +10,10 @@ import { PolicialViewModal } from "@/components/policial/PolicialViewModal"
 // ---------------------------------------------------------------------------
 
 interface PoliceGridProps {
-  policiais: any[] // objeto completo do Prisma com relações
+  policiais: any[]
+  subunidades?: { id: number; nome: string }[]
+  funcoes?: { id: number; nome: string }[]
+  highlight?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -39,7 +42,7 @@ function buildCracha(policial: any): string {
 // Componente
 // ---------------------------------------------------------------------------
 
-export function PoliceGrid({ policiais }: PoliceGridProps) {
+export function PoliceGrid({ policiais, subunidades = [], funcoes = [], highlight = false }: PoliceGridProps) {
   const [selectedPolicial, setSelectedPolicial] = useState<any | null>(null)
   const [isOpen, setIsOpen] = useState(false)
 
@@ -68,7 +71,9 @@ export function PoliceGrid({ policiais }: PoliceGridProps) {
               <Card
                 key={policial.id}
                 onClick={() => handleOpenModal(policial)}
-                className="border-2 border-black shadow-sm hover:shadow-md transition-all bg-white overflow-hidden group cursor-pointer hover:border-[#97836a]"
+                className={`border-2 shadow-sm hover:shadow-md transition-all bg-white overflow-hidden group cursor-pointer hover:border-[#97836a] ${
+                  highlight && policiais.length === 1 ? "border-[#cca471] ring-2 ring-[#cca471]/20 scale-[1.02]" : "border-black"
+                }`}
               >
                 <CardContent className="p-0">
                   <div className="flex items-center p-4 gap-4">
@@ -132,6 +137,8 @@ export function PoliceGrid({ policiais }: PoliceGridProps) {
         isOpen={isOpen}
         onClose={handleCloseModal}
         policial={selectedPolicial}
+        subunidades={subunidades}
+        funcoes={funcoes}
       />
     </>
   )

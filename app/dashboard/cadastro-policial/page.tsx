@@ -11,7 +11,7 @@ export default async function CadastroPolicialPage() {
 
   const [subunidades, funcoes] = await Promise.all([
     prisma.subunidade.findMany({ orderBy: { nome: 'asc' } }),
-    prisma.funcaoAtual.findMany({ orderBy: { nome: 'asc' } })
+    prisma.funcaoAtual.findMany({ orderBy: { funcao: 'asc' } })
   ])
 
   return (

@@ -103,19 +103,43 @@ model Login {
 }
 
 model Subunidade {
-  id        Int        @id @default(autoincrement())
-  nome      String     @unique
-  policiais Policial[]
+  id              Int               @id @default(autoincrement())
+  nome            String            @unique
+  sigla           String            @unique
+  policiais       Policial[]
+  postosServico   PostoDeServico[]
+  transferencias  Transferencia[]
 
   @@map("subunidade")
 }
 
+model PostoDeServico {
+  id           Int        @id @default(autoincrement())
+  nome         String     @unique
+  subunidadeId Int        @map("subunidade_id")
+  subunidade   Subunidade @relation(fields: [subunidadeId], references: [id])
+
+  @@map("posto_de_servico")
+}
+
 model FuncaoAtual {
   id        Int        @id @default(autoincrement())
-  nome      String     @unique
+  funcao    String     @unique
   policiais Policial[]
 
   @@map("funcao_atual")
+}
+
+model Transferencia {
+  id              Int        @id @default(autoincrement())
+  policialId      Int        @map("policial_id")
+  subunidadeId    Int        @map("subunidade_id")
+  dataTransferencia DateTime   @default(now()) @map("data_transferencia")
+  
+  subunidade      Subunidade @relation(fields: [subunidadeId], references: [id])
+  policial        Policial   @relation(fields: [policialId], references: [id])
+
+  @@map("transferencia")
 }
 
 model Endereco {
@@ -168,6 +192,7 @@ model Policial {
   
   funcaoAtualId   Int?         @map("funcao_atual_id")
   funcaoAtual     FuncaoAtual? @relation(fields: [funcaoAtualId], references: [id])
+  transferencias  Transferencia[]
 
   login Login?
 

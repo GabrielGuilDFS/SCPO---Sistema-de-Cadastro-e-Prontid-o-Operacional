@@ -86,7 +86,7 @@ const SELECT_LABELS: Record<string, string> = {
 
 interface PolicialFormProps {
   subunidades?: { id: number; nome: string }[];
-  funcoes?: { id: number; nome: string }[];
+  funcoes?: { id: number; funcao: string }[];
   initialData?: any;
   onSuccess?: () => void;
 }
@@ -551,17 +551,17 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
                     <Select onValueChange={field.onChange} value={field.value || 'none'}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione">
-                            {field.value && field.value !== 'none' ? funcoes.find(f => f.id.toString() === field.value)?.nome || "Selecionado" : "Nenhuma Função"}
-                          </SelectValue>
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">Nenhuma Função</SelectItem>
-                        {funcoes.map(func => (
-                          <SelectItem key={func.id} value={func.id.toString()}>{func.nome}</SelectItem>
-                        ))}
-                      </SelectContent>
+                      <SelectValue placeholder="Selecione">
+                        {field.value && field.value !== 'none' ? funcoes.find(f => f.id.toString() === field.value)?.funcao || "Selecionado" : "Nenhuma Função"}
+                      </SelectValue>
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhuma Função</SelectItem>
+                    {funcoes.map(func => (
+                      <SelectItem key={func.id} value={func.id.toString()}>{func.funcao}</SelectItem>
+                    ))}
+                  </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>

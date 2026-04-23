@@ -13,6 +13,7 @@ import { ShieldCheck, UserX, Power, CheckCircle2, AlertCircle, Edit } from "luci
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
 import { desativarPolicial, ativarPolicial } from "@/app/cadastro/policial/actions"
+import { toast } from "sonner"
 import { PolicialForm } from "./PolicialForm"
 import {
   AlertDialog,
@@ -34,7 +35,7 @@ interface PolicialViewModalProps {
   onClose: () => void
   policial: any | null
   subunidades?: { id: number; nome: string }[]
-  funcoes?: { id: number; nome: string }[]
+  funcoes?: { id: number; funcao: string }[]
 }
 
 // ---------------------------------------------------------------------------
@@ -153,9 +154,10 @@ export function PolicialViewModal({
     setIsLoading(false)
     setIsConfirmOpen(false)
     if (result.success) {
+      toast.success(result.message)
       onClose()
     } else {
-      alert(result.message)
+      toast.error(result.message)
     }
   }
 
@@ -312,7 +314,7 @@ export function PolicialViewModal({
                   />
                   <Field
                     label="Função Atual"
-                    value={policial.funcaoAtual?.nome ?? "Não Informada"}
+                    value={policial.funcaoAtual?.funcao ?? "Não Informada"}
                   />
                   <Field
                     label="Data de Admissão"

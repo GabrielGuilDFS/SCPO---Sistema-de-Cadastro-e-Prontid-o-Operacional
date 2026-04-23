@@ -63,7 +63,7 @@ export default async function DashboardHome() {
       _count: { id: true }
     }),
     prisma.subunidade.findMany({ orderBy: { nome: 'asc' } }),
-    prisma.funcaoAtual.findMany({ orderBy: { nome: 'asc' } })
+    prisma.funcaoAtual.findMany({ orderBy: { funcao: 'asc' } })
   ])
   const cores = ['#97836a', '#544634', '#cbd5e1', '#000000', '#f59e0b']
 
@@ -146,7 +146,7 @@ export default async function DashboardHome() {
             />
           </div>
           <div className="order-1 lg:order-2 lg:sticky lg:top-24">
-            <QuickAccess />
+            <QuickAccess userProfile={session?.user?.perfil} />
           </div>
         </section>
       </main>

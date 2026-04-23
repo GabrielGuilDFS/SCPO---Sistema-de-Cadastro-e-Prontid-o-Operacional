@@ -13,6 +13,8 @@ export const metadata: Metadata = {
   description: "Sistema de Cadastro e Prontidão Operacional",
 };
 
+import { Toaster } from "sonner";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -23,7 +25,10 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${roboto.variable} ${roboto.className} font-sans h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <Toaster position="top-right" richColors />
+      </body>
     </html>
   );
 }

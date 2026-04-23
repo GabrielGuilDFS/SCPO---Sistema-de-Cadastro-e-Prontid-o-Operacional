@@ -75,7 +75,7 @@ export default async function PoliciaisInativosPage({ searchParams }: InativosPa
 
   const [subunidades, funcoes] = await Promise.all([
     prisma.subunidade.findMany({ orderBy: { nome: 'asc' } }),
-    prisma.funcaoAtual.findMany({ orderBy: { nome: 'asc' } })
+    prisma.funcaoAtual.findMany({ orderBy: { funcao: 'asc' } })
   ])
 
   const calcularIdade = (data: Date | null): number => {

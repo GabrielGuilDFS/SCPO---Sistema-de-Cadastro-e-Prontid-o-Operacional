@@ -12,7 +12,7 @@ import { PolicialViewModal } from "@/components/policial/PolicialViewModal"
 interface PoliceGridProps {
   policiais: any[]
   subunidades?: { id: number; nome: string }[]
-  funcoes?: { id: number; nome: string }[]
+  funcoes?: { id: number; funcao: string }[]
   highlight?: boolean
 }
 

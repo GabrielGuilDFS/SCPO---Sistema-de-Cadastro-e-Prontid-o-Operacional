@@ -111,6 +111,7 @@ async function main() {
     console.log('Login do Guilherme criado com sucesso!')
   }
 
+  // Sempre que e criado um novo policial, a senha padrao é "@PMBA2026""
   // Criar login para o Admin
   const admin = await prisma.policial.findUnique({ where: { matricula: '000000-0' } })
   if (admin) {

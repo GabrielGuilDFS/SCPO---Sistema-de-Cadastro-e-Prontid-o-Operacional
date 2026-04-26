@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import prisma from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
 import { policialFormSchema, PolicialFormData } from "@/lib/schemas/policial"
+import bcrypt from "bcrypt"
 
 export async function salvarDadosPolicial(data: PolicialFormData) {
   try {
@@ -57,9 +58,30 @@ export async function salvarDadosPolicial(data: PolicialFormData) {
       };
     }
 
-    // Salva no banco de dados
-    const policial = await prisma.policial.create({
-      data: policialData
+    // Hash da senha padrão temporária
+    const senhaPadrao = '@PMBA2026';
+    const senhaHash = await bcrypt.hash(senhaPadrao, 10);
+    const perfil = validData.perfilAcesso || "VISUALIZADOR";
+
+    // Salva no banco de dados usando Transaction para garantir atomicidade
+    const policial = await prisma.$transaction(async (tx) => {
+      // 1. Cria o policial
+      const novoPolicial = await tx.policial.create({
+        data: policialData
+      });
+
+      // 2. Cria o login associado (usando a matrícula como username e senha com hash)
+      await tx.login.create({
+        data: {
+          policialId: novoPolicial.id,
+          matricula: novoPolicial.matricula,
+          perfilAcesso: perfil as any,
+          senhaHash: senhaHash,
+          statusAtivo: true,
+        }
+      });
+
+      return novoPolicial;
     });
 
     revalidatePath('/dashboard', 'layout');
@@ -75,7 +97,7 @@ export async function salvarDadosPolicial(data: PolicialFormData) {
         return { success: false, message: "Este CPF já está cadastrado no sistema." };
       }
       if (target === 'matricula') {
-        return { success: false, message: "Esta Matrícula já está cadastrada no sistema." };
+        return { success: false, message: "Esta Matrícula já está cadastrada no sistema ou já possui um login ativo." };
       }
       return { success: false, message: `O registro informado (${target}) já existe no banco de dados.` };
     }

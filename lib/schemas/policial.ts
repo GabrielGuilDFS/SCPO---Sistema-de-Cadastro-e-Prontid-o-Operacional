@@ -104,6 +104,7 @@ export const policialFormSchema = z.object({
   cidade: z.string().optional(),
   estado: z.string().optional(),
   cep: z.string().optional().transform((val) => (val ? val.replace(/[^\d]/g, "") : undefined)),
+  perfilAcesso: z.enum(["ADMINISTRADOR", "OPERADOR", "VISUALIZADOR", "none"]).optional().transform(v => v === "none" ? undefined : v),
 });
 
 export type PolicialFormData = z.infer<typeof policialFormSchema>;

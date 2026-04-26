@@ -40,7 +40,7 @@ export default async function CadastroPolicialPage() {
         </div>
         
         {/* Renderiza o componente de formulário */}
-        <PolicialForm subunidades={subunidades} funcoes={funcoes} />
+        <PolicialForm subunidades={subunidades} funcoes={funcoes} userRole={session?.user?.perfil} />
         
       </main>
     </div>

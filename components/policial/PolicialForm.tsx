@@ -59,7 +59,7 @@ const maskMatricula = (value: string) => {
   if (v.length > 6) {
     v = v.replace(/^(\d{6})(\d+)/, "$1-$2");
   }
-  return v.slice(0, 9);
+  return v.slice(0, 8);
 }
 
 const maskCnh = (value: string) => {
@@ -81,6 +81,7 @@ const SELECT_LABELS: Record<string, string> = {
   SOLDADO: "Soldado", CABO: "Cabo", SARGENTO: "Sargento", SUBTENENTE: "Subtenente", TENENTE: "Tenente", CAPITAO: "Capitão", MAJOR: "Major", TENENTE_CORONEL: "Tenente Coronel", CORONEL: "Coronel",
   FUNDAMENTAL: "Ensino Fundamental", MEDIO: "Ensino Médio", SUPERIOR: "Ensino Superior", POS_GRADUACAO: "Pós Graduação", MESTRADO: "Mestrado", DOUTORADO: "Doutorado",
   A: "A", B: "B", C: "C", D: "D", E: "E", AB: "AB", AC: "AC", AD: "AD", AE: "AE",
+  ADMINISTRADOR: "Administrador", OPERADOR: "Operador", VISUALIZADOR: "Visualizador",
   none: "Selecione"
 };
 
@@ -89,13 +90,14 @@ interface PolicialFormProps {
   funcoes?: { id: number; funcao: string }[];
   initialData?: any;
   onSuccess?: () => void;
+  userRole?: string;
 }
 
-export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSuccess }: PolicialFormProps) {
+export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSuccess, userRole }: PolicialFormProps) {
   const [activeTab, setActiveTab] = useState("aba-1")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [apiMessage, setApiMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-  
+
   const form = useForm<z.input<typeof policialFormSchema>, any, z.infer<typeof policialFormSchema>>({
     resolver: zodResolver(policialFormSchema),
     defaultValues: {
@@ -128,6 +130,7 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
       cidade: initialData?.endereco?.cidade || "",
       estado: initialData?.endereco?.estado || "",
       cep: initialData?.endereco?.cep || "",
+      perfilAcesso: initialData?.login?.perfilAcesso || "none",
     },
   })
 
@@ -145,11 +148,11 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
       if (parts.length > 0) {
         let suggestedName = parts[parts.length - 1].toUpperCase()
         const commonNames = ["SILVA", "SANTOS", "SOUZA", "OLIVEIRA", "LIMA", "COSTA"]
-        
+
         if (commonNames.includes(suggestedName) && parts.length > 1) {
           suggestedName = `${parts[parts.length - 2].toUpperCase()} ${suggestedName}`
         }
-        
+
         form.setValue("nomeGuerra", suggestedName)
       }
     } else if (!userEditedNomeGuerra && !nomeCompleto) {
@@ -201,7 +204,7 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
       if (data.imagemUrl instanceof File) {
         const formData = new FormData()
         formData.append("file", data.imagemUrl)
-        
+
         const uploadResult = await uploadImage(formData)
         if (uploadResult.success) {
           finalImageUrl = uploadResult.url
@@ -214,7 +217,7 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
 
       const payload = { ...data, imagemUrl: finalImageUrl }
 
-      const response = initialData 
+      const response = initialData
         ? await atualizarPolicial(initialData.id, payload)
         : await salvarDadosPolicial(payload)
 
@@ -279,13 +282,13 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
               <TabsTrigger value="aba-3">3. Contato e Endereço</TabsTrigger>
               <TabsTrigger value="aba-4">4. Observações</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="aba-1" className="space-y-6">
               <div className="flex flex-col sm:flex-row gap-8 items-start mb-6">
-                
+
                 {/* Upload Foto */}
                 <div className="flex flex-col items-center justify-center shrink-0 pt-2">
-                  <div 
+                  <div
                     className="relative w-32 h-32 rounded-full border-4 border-slate-200 bg-slate-100 flex items-center justify-center overflow-hidden cursor-pointer group hover:border-[#cca471] transition-all shadow-sm"
                     onClick={() => fileInputRef.current?.click()}
                   >
@@ -298,10 +301,10 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
                       <span className="text-white text-xs font-semibold">Foto</span>
                     </div>
                   </div>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden" 
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
                     ref={fileInputRef}
                     onChange={handleImageChange}
                   />
@@ -358,18 +361,42 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
                     <FormItem className="md:col-span-2">
                       <FormLabel>Nome de Guerra</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="SILVA" 
-                          {...field} 
+                        <Input
+                          placeholder="SILVA"
+                          {...field}
                           onChange={(e) => {
                             setUserEditedNomeGuerra(true)
                             field.onChange(e)
-                          }} 
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
+
+                  {userRole === 'ADMINISTRADOR' && (
+                    <FormField control={form.control} name="perfilAcesso" render={({ field }: { field: any }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Nível de Acesso no Sistema</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || 'none'}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o Nível">
+                                {field.value && field.value !== 'none' ? SELECT_LABELS[field.value] : "Selecione o Nível"}
+                              </SelectValue>
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="none">Selecione o Nível</SelectItem>
+                            <SelectItem value="ADMINISTRADOR">Administrador</SelectItem>
+                            <SelectItem value="OPERADOR">Operador</SelectItem>
+                            <SelectItem value="VISUALIZADOR">Visualizador</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  )}
                 </div>
               </div>
 
@@ -509,7 +536,9 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
               <div className="flex justify-end pt-4">
                 <Button type="button" onClick={async () => {
                   setApiMessage(null)
-                  const isValid = await form.trigger(['nomeCompleto', 'cpf', 'rg', 'matricula', 'dataNascimento', 'sexo', 'estadoCivil', 'tipoSanguineo', 'escolaridade', 'grauHierarquico']);
+                  const fieldsToValidate = ['nomeCompleto', 'cpf', 'rg', 'matricula', 'dataNascimento', 'sexo', 'estadoCivil', 'tipoSanguineo', 'escolaridade', 'grauHierarquico'];
+                  if (userRole === 'ADMINISTRADOR') fieldsToValidate.push('perfilAcesso');
+                  const isValid = await form.trigger(fieldsToValidate as any);
                   if (isValid) {
                     setActiveTab("aba-2")
                   } else {
@@ -551,17 +580,17 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
                     <Select onValueChange={field.onChange} value={field.value || 'none'}>
                       <FormControl>
                         <SelectTrigger>
-                      <SelectValue placeholder="Selecione">
-                        {field.value && field.value !== 'none' ? funcoes.find(f => f.id.toString() === field.value)?.funcao || "Selecionado" : "Nenhuma Função"}
-                      </SelectValue>
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhuma Função</SelectItem>
-                    {funcoes.map(func => (
-                      <SelectItem key={func.id} value={func.id.toString()}>{func.funcao}</SelectItem>
-                    ))}
-                  </SelectContent>
+                          <SelectValue placeholder="Selecione">
+                            {field.value && field.value !== 'none' ? funcoes.find(f => f.id.toString() === field.value)?.funcao || "Selecionado" : "Nenhuma Função"}
+                          </SelectValue>
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhuma Função</SelectItem>
+                        {funcoes.map(func => (
+                          <SelectItem key={func.id} value={func.id.toString()}>{func.funcao}</SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
@@ -740,16 +769,16 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
                 </Button>
               </div>
             </TabsContent>
-            
+
             <TabsContent value="aba-4" className="space-y-4">
               <FormField control={form.control} name="observacoes" render={({ field }: { field: any }) => (
                 <FormItem>
                   <FormLabel>Observações e Histórico</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Adicione notas gerais ou histórico sobre o policial..." 
-                      className="min-h-[250px] resize-y" 
-                      {...field} 
+                    <Textarea
+                      placeholder="Adicione notas gerais ou histórico sobre o policial..."
+                      className="min-h-[250px] resize-y"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />

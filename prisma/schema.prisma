@@ -87,6 +87,31 @@ enum Escolaridade {
   @@map("escolaridade")
 }
 
+enum Disponibilidade {
+  PRONTO
+  INDISPONIVEL
+  FORA_DE_ESCALA
+
+  @@map("disponibilidade")
+}
+
+enum SituacaoFuncional {
+  ATIVO
+  FERIAS
+  LICENCA_PREMIO
+  LICENCA_MEDICA
+
+  @@map("situacao_funcional")
+}
+
+enum CondicaoOperacional {
+  APTO_TOTAL
+  APTO_RESTRICAO
+  INAPTO_TEMPORARIO
+
+  @@map("condicao_operacional")
+}
+
 model Login {
   id           Int          @id @default(autoincrement())
   policialId   Int          @unique @map("policial_id")
@@ -118,6 +143,7 @@ model PostoDeServico {
   nome         String     @unique
   subunidadeId Int        @map("subunidade_id")
   subunidade   Subunidade @relation(fields: [subunidadeId], references: [id])
+  peculios     Peculio[]
 
   @@map("posto_de_servico")
 }
@@ -195,6 +221,23 @@ model Policial {
   transferencias  Transferencia[]
 
   login Login?
+  peculios Peculio[]
 
   @@map("policial")
+}
+
+model Peculio {
+  id                  Int                 @id @default(autoincrement())
+  policialId          Int                 @map("policial_id")
+  postoDeServicoId    Int                 @map("posto_de_servico_id")
+  disponibilidade     Disponibilidade
+  situacaoFuncional   SituacaoFuncional   @map("situacao_funcional")
+  condicaoOperacional CondicaoOperacional @map("condicao_operacional")
+  dataMesAno          DateTime            @map("data_mes_ano") @db.Date
+  criadoEm            DateTime            @default(now()) @map("criado_em")
+
+  policial            Policial          @relation(fields: [policialId], references: [id])
+  postoDeServico      PostoDeServico    @relation(fields: [postoDeServicoId], references: [id])
+
+  @@map("peculio")
 }

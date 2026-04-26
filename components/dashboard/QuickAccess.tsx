@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { ArrowRightLeft, History, Home, UserPlus, UserX, Settings } from "lucide-react"
+import { ArrowRightLeft, History, Home, UserPlus, UserX, Settings, ClipboardCheck } from "lucide-react"
 import Link from "next/link"
 
 const shortcuts = [
@@ -37,6 +37,13 @@ const shortcuts = [
 
 export function QuickAccess({ userProfile }: { userProfile?: string }) {
   const allShortcuts = [
+    ...(userProfile === "ADMINISTRADOR" || userProfile === "OPERADOR" ? [{
+      title: "Lançar Pecúlio",
+      description: "Registrar prontidão e disponibilidade do efetivo",
+      icon: ClipboardCheck,
+      color: "bg-[#97836a]",
+      url: "/dashboard/peculio/novo"
+    }] : []),
     ...shortcuts,
     ...(userProfile === "ADMINISTRADOR" ? [{
       title: "Painel Administrativo",

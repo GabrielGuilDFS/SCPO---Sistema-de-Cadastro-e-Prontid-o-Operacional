@@ -5,10 +5,16 @@ import { QuickAccess } from "@/components/dashboard/QuickAccess"
 import { PoliceGrid } from "@/components/dashboard/PoliceGrid"
 import { LogoutButton } from "@/components/dashboard/LogoutButton"
 import prisma from "@/lib/prisma"
+import { getPeculioResumoMes } from "@/lib/data/peculio-dashboard"
 
 export default async function DashboardHome() {
   const session = await getServerSession(authOptions)
   const nomeUsuario = session?.user?.name || "Comandante"
+
+  const hoje = new Date()
+  const mesAtual = hoje.getMonth() + 1
+  const anoAtual = hoje.getFullYear()
+  const dataMesAtual = new Date(anoAtual, mesAtual - 1, 1)
 
   const activeFilter = {
     AND: [
@@ -44,39 +50,13 @@ export default async function DashboardHome() {
     )
   }
 
-  const emProntidao = await prisma.policial.count({ 
-    where: { 
-      ...activeFilter,
-      status: 'pronto' 
-    } 
-  })
-  const afastados = await prisma.policial.count({ 
-    where: { 
-      ...activeFilter,
-      status: { not: 'pronto' } 
-    } 
-  }) 
-
-  const [distribuicaoBruta, subunidades, funcoes] = await Promise.all([
-    prisma.policial.groupBy({
-      by: ['subunidadeId'],
-      _count: { id: true }
-    }),
+  const [subunidades, funcoes, peculioResumo] = await Promise.all([
     prisma.subunidade.findMany({ orderBy: { nome: 'asc' } }),
-    prisma.funcaoAtual.findMany({ orderBy: { funcao: 'asc' } })
+    prisma.funcaoAtual.findMany({ orderBy: { funcao: 'asc' } }),
+    getPeculioResumoMes(mesAtual, anoAtual),
   ])
-  const cores = ['#97836a', '#544634', '#cbd5e1', '#000000', '#f59e0b']
 
-  const distribuicaoData = distribuicaoBruta.map((item, index) => {
-    const subunidade = subunidades.find(sub => sub.id === item.subunidadeId)
-    return {
-      name: subunidade?.nome ?? 'Sem Cia',
-      value: item._count.id,
-      color: cores[index % cores.length]
-    }
-  })
-
-  // Últimos 10 militares cadastrados — inclui todas as relações para o modal
+  // Últimos 10 militares cadastrados — inclui todas as relações para o modal + pecúlio do mês atual
   const ultimosMilitares = await prisma.policial.findMany({
     where: activeFilter,
     orderBy: { id: 'desc' },
@@ -86,6 +66,13 @@ export default async function DashboardHome() {
       funcaoAtual: true,
       endereco: true,
       login: true,
+      peculios: {
+        where: { dataMesAno: dataMesAtual },
+        take: 1,
+        include: {
+          postoDeServico: true,
+        },
+      },
     }
   })
 
@@ -98,10 +85,11 @@ export default async function DashboardHome() {
     return idade
   }
 
-  // Passa o objeto completo + campo calculado `idade`
+  // Passa o objeto completo + campo calculado `idade` + posto do pecúlio atual
   const policiaisProps = ultimosMilitares.map(p => ({
     ...p,
     idade: calcularIdade(p.dataNascimento as Date | null),
+    postoAtual: p.peculios?.[0]?.postoDeServico?.nome ?? null,
   }))
 
   return (
@@ -131,9 +119,10 @@ export default async function DashboardHome() {
         <section>
           <KPIBoard
             efetivoTotal={efetivoTotal}
-            efetivoProntidao={emProntidao}
-            efetivoAfastamento={afastados}
-            dataDistribuicao={distribuicaoData}
+            totalProntos={peculioResumo.totalProntos}
+            totalAfastados={peculioResumo.totalAfastados}
+            totalLancamentos={peculioResumo.totalLancamentos}
+            dataDistribuicao={peculioResumo.distribuicaoPorPosto}
           />
         </section>
 

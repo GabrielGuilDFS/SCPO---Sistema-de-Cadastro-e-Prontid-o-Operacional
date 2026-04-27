@@ -1,22 +1,31 @@
 "use client"
 
 import { signIn } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
-import { User, Lock, Eye, EyeOff } from "lucide-react"
+import { User, Lock, Eye, EyeOff, ShieldAlert } from "lucide-react"
+import { toast } from "sonner"
 
 export default function LoginSCPO() {
   const router = useRouter()
-
-  // Estados para guardar o que o usuário digita
+  const searchParams = useSearchParams()
   const [matricula, setMatricula] = useState("")
   const [senha, setSenha] = useState("")
   const [erro, setErro] = useState("")
+  const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+
+  // Capturar erro vindo via URL (caso de redirecionamento do NextAuth para usuário desativado)
+  useEffect(() => {
+    const errorParam = searchParams.get("error")
+    if (errorParam === "USER_DEACTIVATED") {
+      setErro("Acesso negado. Este usuário não possui mais permissão para acessar o sistema. Entre em contato com a Telemática do 20º BPM.")
+    }
+  }, [searchParams])
 
   const handleMatriculaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, "") // Remove tudo que não é número
@@ -32,19 +41,33 @@ export default function LoginSCPO() {
 
   // Função que dispara quando o botão ENTRAR é clicado
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault() // Evita que a página recarregue sozinha
+    e.preventDefault()
     setErro("")
+    setLoading(true)
 
-    const resultado = await signIn("credentials", {
-      matricula,
-      senha,
-      redirect: false,
-    })
+    try {
+      const resultado = await signIn("credentials", {
+        matricula,
+        senha,
+        redirect: false,
+      })
 
-    if (resultado?.error) {
-      setErro("Matrícula ou senha incorretos.")
-    } else {
-      router.push("/dashboard")
+      if (resultado?.error) {
+        if (resultado.error.includes("USER_DEACTIVATED")) {
+          setErro("Acesso negado. Este usuário não possui mais permissão para acessar o sistema. Entre em contato com a Telemática do 20º BPM.")
+          toast.error("Usuário Desativado", {
+            description: "Procure a seção de informática para reativação."
+          })
+        } else {
+          setErro("Matrícula ou senha incorretos.")
+        }
+      } else {
+        router.push("/dashboard")
+      }
+    } catch (err) {
+      setErro("Ocorreu um erro ao tentar realizar o login.")
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -56,7 +79,7 @@ export default function LoginSCPO() {
       <div className="absolute inset-0 bg-[#97836a] opacity-30"></div>
 
       {/* Cartão de Login */}
-      <Card className="relative z-10 w-full max-w-lg rounded-2xl bg-[#ffffff] px-6 py-10 shadow-2xl">
+      <Card className="relative z-10 w-full max-w-lg rounded-2xl bg-[#ffffff] px-6 py-10 shadow-2xl border-none">
         <CardContent className="space-y-5">
 
           {/* Seção do Logotipo */}
@@ -74,15 +97,16 @@ export default function LoginSCPO() {
             </div>
           </div>
 
-          {/* MENSAGEM DE ERRO (Aparece apenas se errar a senha) */}
+          {/* MENSAGEM DE ERRO com ícone ShieldAlert */}
           {erro && (
-            <div className="rounded-md bg-red-50 p-3 text-center border border-red-200">
-              <p className="text-sm font-medium text-red-600">{erro}</p>
+            <div className="rounded-xl bg-red-50 p-4 border border-red-200 flex items-start gap-3 animate-in fade-in zoom-in duration-300">
+              <ShieldAlert className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+              <p className="text-sm font-semibold text-red-700 leading-relaxed">{erro}</p>
             </div>
           )}
 
-          {/* Formulário de Login (Agora conectado ao handleLogin) */}
-          <form onSubmit={handleLogin} className="space-y-2">
+          {/* Formulário de Login */}
+          <form onSubmit={handleLogin} className="space-y-4">
 
             {/* Campo Matrícula */}
             <div className="relative">
@@ -92,8 +116,8 @@ export default function LoginSCPO() {
                 value={matricula}
                 onChange={handleMatriculaChange}
                 maxLength={8}
-                placeholder="Digite sua matrícula..."
-                className="w-full rounded-md border border-slate-500 bg-transparent pl-12 py-6 text-lg text-[#000000] placeholder:text-slate-400 focus:border-[#97836a] focus-visible:ring-1 focus-visible:ring-[#97836a]"
+                placeholder="Matrícula"
+                className="w-full rounded-xl border-slate-200 bg-slate-50 pl-12 py-7 text-lg text-slate-900 placeholder:text-slate-400 focus:border-[#97836a] focus:bg-white"
               />
             </div>
 
@@ -103,42 +127,42 @@ export default function LoginSCPO() {
               <Input
                 type={showPassword ? "text" : "password"}
                 value={senha}
-                onChange={(e) => setSenha(e.target.value)} // Salva a senha
-                placeholder="Digite sua senha..."
-                className="w-full rounded-md border border-slate-500 bg-transparent pl-12 pr-12 py-6 text-lg text-[#000000] placeholder:text-slate-400 focus:border-[#97836a] focus-visible:ring-1 focus-visible:ring-[#97836a]"
+                onChange={(e) => setSenha(e.target.value)}
+                placeholder="Senha"
+                className="w-full rounded-xl border-slate-200 bg-slate-50 pl-12 pr-12 py-7 text-lg text-slate-900 placeholder:text-slate-400 focus:border-[#97836a] focus:bg-white"
               />
-              <Button 
-                type="button" 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-1 top-1/2 h-10 w-10 -translate-y-1/2 text-slate-500 hover:bg-transparent hover:text-[#97836a]"
+                className="absolute right-1 top-1/2 h-10 w-10 -translate-y-1/2 text-slate-400 hover:text-[#97836a]"
               >
                 {showPassword ? <EyeOff className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
               </Button>
             </div>
 
-            {/* Link Esqueceu a senha */}
-            <div className="flex items-center justify-start !ml-1 pt-1">
-              <a href="#" className="text-sm font-medium text-[#97836a] hover:text-[#7f6e59]">
+            {/* Manter conectado + Esqueceu a senha (mesma linha) */}
+            <div className="flex items-center justify-between !ml-1 pt-1">
+              <div className="flex items-center space-x-2">
+                <Checkbox id="manter-conectado" className="border-slate-300" />
+                <label htmlFor="manter-conectado" className="text-sm font-medium text-slate-600 cursor-pointer">
+                  Manter conectado
+                </label>
+              </div>
+              <a href="#" className="text-sm font-semibold text-[#97836a] hover:underline">
                 Esqueceu a senha?
               </a>
             </div>
 
-            {/* Manter-se conectado */}
-            <div className="flex items-center space-x-3 !ml-1 py-2">
-              <Checkbox id="manter-conectado" className="h-5 w-5 border-slate-400 focus-visible:ring-0" />
-              <label htmlFor="manter-conectado" className="text-sm text-[#000000]">
-                Manter-se conectado
-              </label>
-            </div>
-
-            {/* Botão ENTRAR */}
-            <div className="pt-2">
-              <Button type="submit" className="w-full bg-[#97836a] py-6 text-lg font-bold uppercase text-[#ffffff] hover:bg-[#7f6e59]">
-                ENTRAR
-              </Button>
-            </div>
+            {/* Botão ENTRAR com estado de loading */}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#97836a] hover:bg-[#b8a791] py-7 text-lg font-bold uppercase text-white rounded-xl shadow-lg transition-all active:scale-[0.98]"
+            >
+              {loading ? "Processando..." : "Entrar no Sistema"}
+            </Button>
           </form>
         </CardContent>
       </Card>

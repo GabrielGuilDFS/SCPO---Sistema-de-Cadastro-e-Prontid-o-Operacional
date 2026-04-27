@@ -9,11 +9,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ShieldCheck, UserX, Power, CheckCircle2, AlertCircle, Edit, Activity, History } from "lucide-react"
+import { ShieldCheck, UserX, Power, CheckCircle2, AlertCircle, Edit, Activity, History, Users, PlusCircle, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect } from "react"
+import { GrauParentesco } from "@prisma/client"
 import { desativarPolicial, ativarPolicial } from "@/app/cadastro/policial/actions"
 import { getHistoricoPeculio, getPostosOptions } from "@/app/actions/peculio"
+import { getDependentesByPolicial, adicionarDependente, removerDependente, atualizarDependente } from "@/app/dashboard/dependentes/actions"
 import { toast } from "sonner"
 import { PolicialForm } from "./PolicialForm"
 import { PeculioForm } from "@/components/peculio/PeculioForm"
@@ -262,6 +266,84 @@ function PeculioTabContent({
 }
 
 // ---------------------------------------------------------------------------
+// Componente Aba de Família (Dependentes)
+// ---------------------------------------------------------------------------
+
+function FamiliaTabContent({ policial }: { policial: any }) {
+  const [dependentes, setDependentes] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const loadDependentes = async () => {
+    setLoading(true)
+    const result = await getDependentesByPolicial(policial.id)
+    if (result.success) setDependentes(result.data || [])
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    loadDependentes()
+  }, [policial.id])
+
+  const calcularIdade = (dataNasc: string | Date) => {
+    const hoje = new Date()
+    const nasc = new Date(dataNasc)
+    let idade = hoje.getFullYear() - nasc.getFullYear()
+    const m = hoje.getMonth() - nasc.getMonth()
+    if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) {
+      idade--
+    }
+    return idade
+  }
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-300">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 className="text-base font-semibold text-slate-800 flex items-center gap-2">
+          <Users className="h-5 w-5 text-[#97836a]" />
+          Grupo Familiar e Dependentes
+        </h3>
+      </div>
+
+      {loading ? (
+        <div className="py-10 text-center text-sm text-slate-500">Carregando familiares...</div>
+      ) : dependentes.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {dependentes.map((dep) => {
+            const idade = calcularIdade(dep.dataNascimento)
+            const isMaioridade = idade >= 18 && (dep.grauParentesco === "FILHO" || dep.grauParentesco === "FILHA" || dep.grauParentesco === "ENTEADO")
+
+            return (
+              <div key={dep.id} className="group flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-[#cca471]/50 transition-all shadow-sm">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-bold text-slate-800 truncate">{dep.nomeCompleto}</h4>
+                    {isMaioridade && (
+                      <Badge variant="outline" className="text-[10px] h-4 bg-slate-100 text-slate-500 border-slate-300">Maioridade</Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                    <span className="bg-slate-100 px-1.5 py-0.5 rounded font-medium uppercase tracking-tighter">{dep.grauParentesco}</span>
+                    <span>•</span>
+                    <span>{idade} anos</span>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center text-center shadow-inner">
+          <Users className="h-12 w-12 text-slate-300 mb-3" />
+          <h4 className="text-slate-700 font-semibold text-lg">Nenhum dependente registrado</h4>
+          <p className="text-sm text-slate-500 mt-1 max-w-md">Os dados de familiares são importantes para o histórico militar. Clique no botão acima para adicionar.</p>
+        </div>
+      )}
+
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Componente principal
 // ---------------------------------------------------------------------------
 
@@ -421,11 +503,12 @@ export function PolicialViewModal({
               {/* ── Nível 2: Conteúdo RH (Nested Tabs) ───────────────────────── */}
               <TabsContent value="rh" className="m-0 focus:outline-none flex-1 flex flex-col min-h-0">
                 <Tabs value={activeInnerTab} onValueChange={setActiveInnerTab} className="w-full flex-1 flex flex-col">
-                  <TabsList className="w-full grid grid-cols-4 rounded-none border-b border-slate-100 bg-slate-50/50 h-auto p-0 shrink-0">
+                  <TabsList className="w-full grid grid-cols-5 rounded-none border-b border-slate-100 bg-slate-50/50 h-auto p-0 shrink-0">
                     {[
                       { value: "identificacao", label: "Identificação" },
                       { value: "profissional", label: "Profissional" },
                       { value: "contato", label: "Contato" },
+                      { value: "familia", label: "Família" },
                       { value: "observacoes", label: "Observações" },
                     ].map((tab) => (
                       <TabsTrigger
@@ -569,6 +652,11 @@ export function PolicialViewModal({
                         )}
                       </div>
                     </TabsContent>
+
+                    {/* ── Aba 5: Família (Dependentes) ──────────────────────────── */}
+                    <TabsContent value="familia" className="p-6 focus:outline-none">
+                      <FamiliaTabContent policial={policial} />
+                    </TabsContent>
                   </div>
                 </Tabs>
               </TabsContent>
@@ -580,6 +668,11 @@ export function PolicialViewModal({
                   isEditingPeculio={isEditingPeculio}
                   setIsEditingPeculio={setIsEditingPeculio}
                 />
+              </TabsContent>
+
+              {/* ── Nível 2: Conteúdo Família (Dependentes) ────────────────── */}
+              <TabsContent value="familia" className="m-0 p-6 focus:outline-none flex-1 overflow-y-auto">
+                <FamiliaTabContent policial={policial} />
               </TabsContent>
 
             </Tabs>

@@ -59,6 +59,16 @@ export async function salvarDadosPolicial(data: PolicialFormData) {
       };
     }
 
+    if (validData.dependentes && validData.dependentes.length > 0) {
+      policialData.dependentes = {
+        create: validData.dependentes.map(dep => ({
+          nomeCompleto: dep.nomeCompleto,
+          grauParentesco: dep.grauParentesco as any,
+          dataNascimento: new Date(dep.dataNascimento)
+        }))
+      };
+    }
+
     // Hash da senha padrão temporária
     const senhaPadrao = '@PMBA2026';
     const senhaHash = await bcrypt.hash(senhaPadrao, 10);
@@ -167,6 +177,17 @@ export async function atualizarPolicial(id: number, data: PolicialFormData) {
             cep: validData.cep || null,
           }
         }
+      };
+    }
+
+    if (validData.dependentes) {
+      updateData.dependentes = {
+        deleteMany: {},
+        create: validData.dependentes.map(dep => ({
+          nomeCompleto: dep.nomeCompleto,
+          grauParentesco: dep.grauParentesco as any,
+          dataNascimento: new Date(dep.dataNascimento)
+        }))
       };
     }
 

@@ -66,7 +66,8 @@ export default async function PoliciaisInativosPage({ searchParams }: InativosPa
       subunidade: true,
       funcaoAtual: true,
       endereco: true,
-      login: true
+      login: true,
+      dependentes: true
     }
   })
 

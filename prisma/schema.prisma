@@ -112,6 +112,18 @@ enum CondicaoOperacional {
   @@map("condicao_operacional")
 }
 
+enum GrauParentesco {
+  FILHO
+  FILHA
+  CONJUGE
+  PAI
+  MAE
+  ENTEADO
+  OUTROS
+
+  @@map("grau_parentesco")
+}
+
 model Login {
   id           Int          @id @default(autoincrement())
   policialId   Int          @unique @map("policial_id")
@@ -222,8 +234,23 @@ model Policial {
 
   login Login?
   peculios Peculio[]
+  dependentes Dependente[]
 
   @@map("policial")
+}
+
+model Dependente {
+  id             Int            @id @default(autoincrement())
+  policialId     Int            @map("policial_id")
+  nomeCompleto   String         @map("nome_completo")
+  grauParentesco GrauParentesco @map("grau_parentesco")
+  dataNascimento DateTime       @map("data_nascimento") @db.Date
+  criadoEm       DateTime       @default(now()) @map("criado_em")
+  atualizadoEm   DateTime       @updatedAt @map("atualizado_em")
+
+  policial Policial @relation(fields: [policialId], references: [id])
+
+  @@map("dependente")
 }
 
 model Peculio {

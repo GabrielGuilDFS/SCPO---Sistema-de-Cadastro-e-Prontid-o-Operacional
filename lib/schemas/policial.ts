@@ -13,6 +13,12 @@ const isValidCPF = (cpf: string) => {
   return rest(10) === cpfDigits[9] && rest(11) === cpfDigits[10];
 };
 
+export const dependenteSchema = z.object({
+  nomeCompleto: z.string().min(3, "Nome do dependente deve ter no mínimo 3 caracteres"),
+  grauParentesco: z.enum(["FILHO", "FILHA", "CONJUGE", "PAI", "MAE", "ENTEADO", "OUTROS"]),
+  dataNascimento: z.string().min(1, "Data de nascimento é obrigatória").refine((val) => !isNaN(Date.parse(val)), "Data inválida"),
+});
+
 export const policialFormSchema = z.object({
   nomeCompleto: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
   nomeGuerra: z.string().optional(),
@@ -105,6 +111,7 @@ export const policialFormSchema = z.object({
   estado: z.string().optional(),
   cep: z.string().optional().transform((val) => (val ? val.replace(/[^\d]/g, "") : undefined)),
   perfilAcesso: z.enum(["ADMINISTRADOR", "OPERADOR", "VISUALIZADOR", "none"]).optional().transform(v => v === "none" ? undefined : v),
+  dependentes: z.array(dependenteSchema).optional().default([]),
 });
 
 export type PolicialFormData = z.infer<typeof policialFormSchema>;

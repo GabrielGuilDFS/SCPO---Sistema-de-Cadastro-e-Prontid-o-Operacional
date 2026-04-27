@@ -50,6 +50,7 @@ export default async function DashboardHome() {
       funcaoAtual: true,
       endereco: true,
       login: true,
+      dependentes: true,
       peculios: {
         where: { dataMesAno: dataMesAtual },
         take: 1,

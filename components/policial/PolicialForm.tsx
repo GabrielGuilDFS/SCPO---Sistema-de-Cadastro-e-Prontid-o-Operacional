@@ -1,7 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { useForm, useFieldArray } from "react-hook-form"
 import { z } from "zod"
 import { policialFormSchema, PolicialFormData } from "@/lib/schemas/policial"
 import { Button } from "@/components/ui/button"
@@ -19,9 +19,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useState, useEffect, useRef } from "react"
-import { Camera } from "lucide-react"
+import { Camera, Plus, Trash2, UserPlus } from "lucide-react"
 import { salvarDadosPolicial, atualizarPolicial } from "@/app/cadastro/policial/actions"
 import { uploadImage } from "@/app/cadastro/policial/uploadAction"
+import { toast } from "sonner"
 
 const maskCpf = (value: string) => {
   return value
@@ -82,6 +83,7 @@ const SELECT_LABELS: Record<string, string> = {
   FUNDAMENTAL: "Ensino Fundamental", MEDIO: "Ensino Médio", SUPERIOR: "Ensino Superior", POS_GRADUACAO: "Pós Graduação", MESTRADO: "Mestrado", DOUTORADO: "Doutorado",
   A: "A", B: "B", C: "C", D: "D", E: "E", AB: "AB", AC: "AC", AD: "AD", AE: "AE",
   ADMINISTRADOR: "Administrador", OPERADOR: "Operador", VISUALIZADOR: "Visualizador",
+  FILHO: "Filho", FILHA: "Filha", CONJUGE: "Cônjuge", PAI: "Pai", MAE: "Mãe", ENTEADO: "Enteado", OUTROS: "Outros",
   none: "Selecione"
 };
 
@@ -131,7 +133,17 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
       estado: initialData?.endereco?.estado || "",
       cep: initialData?.endereco?.cep || "",
       perfilAcesso: initialData?.login?.perfilAcesso || "none",
+      dependentes: initialData?.dependentes?.map((d: any) => ({
+        nomeCompleto: d.nomeCompleto,
+        grauParentesco: d.grauParentesco,
+        dataNascimento: d.dataNascimento ? new Date(d.dataNascimento).toISOString().split('T')[0] : ""
+      })) || [],
     },
+  })
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "dependentes",
   })
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -275,12 +287,50 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-6">
+          <Tabs
+            value={activeTab}
+            onValueChange={async (value) => {
+              const tabOrder = ["aba-1", "aba-2", "aba-3", "aba-5", "aba-4"];
+              const currentIndex = tabOrder.indexOf(activeTab);
+              const targetIndex = tabOrder.indexOf(value);
+
+              // Se o usuário estiver tentando avançar (clicando em uma aba posterior)
+              if (targetIndex > currentIndex) {
+                const fieldsToValidate: any = {
+                  "aba-1": ['nomeCompleto', 'cpf', 'rg', 'matricula', 'dataNascimento', 'sexo', 'estadoCivil', 'tipoSanguineo', 'escolaridade', 'grauHierarquico'],
+                  "aba-2": ['dataAdmissao', 'cnhCategoria', 'cnhNumero'],
+                  "aba-3": ['email', 'telefonePrimario', 'telefoneSecundario', 'cep', 'logradouro', 'numero', 'bairro', 'cidade', 'estado'],
+                  "aba-5": ['dependentes']
+                };
+
+                if (userRole === 'ADMINISTRADOR') {
+                  fieldsToValidate["aba-1"].push('perfilAcesso');
+                }
+
+                // Validamos todas as abas entre a atual e a alvo (inclusive a atual)
+                for (let i = currentIndex; i < targetIndex; i++) {
+                  const tabKey = tabOrder[i];
+                  const fields = fieldsToValidate[tabKey];
+                  if (fields) {
+                    const isValid = await form.trigger(fields);
+                    if (!isValid) {
+                      toast.error(`Existem erros de validação na aba ${i + 1}. Por favor, corrija-os antes de prosseguir.`);
+                      return;
+                    }
+                  }
+                }
+              }
+
+              setActiveTab(value);
+            }}
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-6">
               <TabsTrigger value="aba-1">1. Identificação</TabsTrigger>
               <TabsTrigger value="aba-2">2. Profissional</TabsTrigger>
-              <TabsTrigger value="aba-3">3. Contato e Endereço</TabsTrigger>
-              <TabsTrigger value="aba-4">4. Observações</TabsTrigger>
+              <TabsTrigger value="aba-3">3. Contato</TabsTrigger>
+              <TabsTrigger value="aba-5">4. Dependentes</TabsTrigger>
+              <TabsTrigger value="aba-4">5. Observações</TabsTrigger>
             </TabsList>
 
             <TabsContent value="aba-1" className="space-y-6">
@@ -542,6 +592,7 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
                   if (isValid) {
                     setActiveTab("aba-2")
                   } else {
+                    toast.error("Existem erros de validação na aba de Identificação.");
                     setApiMessage({ type: 'error', text: 'Verifique os campos obrigatórios na aba de Identificação antes de avançar.' })
                   }
                 }} className="w-full sm:w-auto px-8 bg-[#97836a] hover:bg-[#7f6e59] text-white">
@@ -661,6 +712,7 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
                   if (isValid) {
                     setActiveTab("aba-3")
                   } else {
+                    toast.error("Existem erros de validação na aba Profissional.");
                     setApiMessage({ type: 'error', text: 'Verifique os campos obrigatórios na aba Profissional.' })
                   }
                 }} className="w-full sm:w-auto px-8 bg-[#97836a] hover:bg-[#7f6e59] text-white">
@@ -760,11 +812,116 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
                   setApiMessage(null)
                   const isValid = await form.trigger(['email', 'telefonePrimario', 'telefoneSecundario', 'cep', 'logradouro', 'numero', 'bairro', 'cidade', 'estado']);
                   if (isValid) {
-                    setActiveTab("aba-4")
+                    setActiveTab("aba-5")
                   } else {
+                    toast.error("Existem erros de validação na aba de Contato e Endereço.");
                     setApiMessage({ type: 'error', text: 'Verifique os campos na aba de Contato e Endereço antes de avançar.' })
                   }
                 }} className="w-full sm:w-auto px-8 bg-[#97836a] hover:bg-[#7f6e59] text-white">
+                  Avançar para Dependentes
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="aba-5" className="space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">Grupo Familiar</h3>
+                  <p className="text-sm text-slate-500">Adicione os dependentes e familiares vinculados a este militar.</p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => append({ nomeCompleto: "", grauParentesco: "FILHO", dataNascimento: "" })}
+                  className="bg-[#97836a] hover:bg-[#7f6e59] text-white"
+                >
+                  <Plus className="h-4 w-4 mr-2" /> Adicionar
+                </Button>
+              </div>
+
+              {fields.length === 0 ? (
+                <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-8 text-center">
+                  <UserPlus className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-500 text-sm">Nenhum dependente adicionado até o momento.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {fields.map((field, index) => (
+                    <div key={field.id} className="p-4 bg-slate-50/50 rounded-xl border border-slate-100 relative animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormField control={form.control} name={`dependentes.${index}.nomeCompleto`} render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nome Completo</FormLabel>
+                            <FormControl><Input placeholder="Nome do familiar" {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+
+                        <FormField control={form.control} name={`dependentes.${index}.grauParentesco`} render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Parentesco</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione">
+                                    {field.value ? SELECT_LABELS[field.value] : "Selecione"}
+                                  </SelectValue>
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="FILHO">Filho</SelectItem>
+                                <SelectItem value="FILHA">Filha</SelectItem>
+                                <SelectItem value="CONJUGE">Cônjuge</SelectItem>
+                                <SelectItem value="PAI">Pai</SelectItem>
+                                <SelectItem value="MAE">Mãe</SelectItem>
+                                <SelectItem value="ENTEADO">Enteado</SelectItem>
+                                <SelectItem value="OUTROS">Outros</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+
+                        <FormField control={form.control} name={`dependentes.${index}.dataNascimento`} render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nascimento</FormLabel>
+                            <FormControl><Input type="date" {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                      </div>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => remove(index)}
+                        className="absolute -top-2 -right-2 h-7 w-7 rounded-full bg-white border border-slate-200 text-rose-500 hover:bg-rose-50 hover:text-rose-600 shadow-sm"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex justify-between pt-4">
+                <Button type="button" variant="outline" onClick={() => setActiveTab("aba-3")}>
+                  Voltar
+                </Button>
+                <Button
+                  type="button"
+                  onClick={async () => {
+                    setApiMessage(null);
+                    const isValid = await form.trigger('dependentes');
+                    if (isValid) {
+                      setActiveTab("aba-4");
+                    } else {
+                      toast.error("Verifique os dados dos dependentes. Certifique-se de que todos os campos obrigatórios (como nome e nascimento) foram preenchidos.");
+                      setApiMessage({ type: 'error', text: 'Existem pendências na lista de dependentes.' });
+                    }
+                  }}
+                  className="w-full sm:w-auto px-8 bg-[#97836a] hover:bg-[#7f6e59] text-white"
+                >
                   Avançar para Observações
                 </Button>
               </div>
@@ -786,7 +943,7 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
               )} />
 
               <div className="flex justify-between pt-4">
-                <Button type="button" variant="outline" onClick={() => setActiveTab("aba-3")}>
+                <Button type="button" variant="outline" onClick={() => setActiveTab("aba-5")}>
                   Voltar
                 </Button>
                 <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto px-8 bg-[#97836a] hover:bg-[#7f6e59] text-white">

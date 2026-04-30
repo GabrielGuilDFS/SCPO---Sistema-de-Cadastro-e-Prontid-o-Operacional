@@ -19,10 +19,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useState, useEffect, useRef } from "react"
-import { Camera, Plus, Trash2, UserPlus } from "lucide-react"
-import { salvarDadosPolicial, atualizarPolicial } from "@/app/cadastro/policial/actions"
+import { Camera, Plus, Trash2, UserPlus, Loader2 } from "lucide-react"
+import { salvarDadosPolicial, atualizarPolicial, verificarMatriculaExistente } from "@/app/cadastro/policial/actions"
 import { uploadImage } from "@/app/cadastro/policial/uploadAction"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 const maskCpf = (value: string) => {
   return value
@@ -99,6 +100,8 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
   const [activeTab, setActiveTab] = useState("aba-1")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [apiMessage, setApiMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [isCheckingMatricula, setIsCheckingMatricula] = useState(false)
+  const router = useRouter()
 
   const form = useForm<z.input<typeof policialFormSchema>, any, z.infer<typeof policialFormSchema>>({
     resolver: zodResolver(policialFormSchema),
@@ -197,6 +200,33 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
     fetchCep()
   }, [cep, form])
 
+  const handleMatriculaBlur = async () => {
+    const matricula = form.getValues("matricula")
+    if (!matricula || matricula.length < 7) return
+    // Na edição, não verifica a própria matrícula
+    if (initialData?.matricula === matricula) return
+
+    setIsCheckingMatricula(true)
+    try {
+      const existe = await verificarMatriculaExistente(matricula)
+      if (existe) {
+        form.setError('matricula', {
+          message: 'Esta matrícula já está cadastrada no sistema.'
+        })
+      } else {
+        // Limpar erro anterior de duplicidade se o usuário corrigiu
+        const currentError = form.formState.errors.matricula?.message
+        if (currentError === 'Esta matrícula já está cadastrada no sistema.') {
+          form.clearErrors('matricula')
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao verificar matrícula:", error)
+    } finally {
+      setIsCheckingMatricula(false)
+    }
+  }
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -235,12 +265,16 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
 
       if (response.success) {
         setApiMessage({ type: 'success', text: response.message })
+        toast.success(response.message)
         if (!initialData) {
           form.reset()
           setPreviewUrl(null)
         }
         if (onSuccess) {
           setTimeout(onSuccess, 1500)
+        } else if (!initialData) {
+          // Redireciona para o dashboard após cadastro bem-sucedido
+          setTimeout(() => router.push('/dashboard'), 1500)
         }
       } else {
         setApiMessage({ type: 'error', text: response.message })
@@ -394,7 +428,29 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
                   <FormField control={form.control} name="matricula" render={({ field }: { field: any }) => (
                     <FormItem>
                       <FormLabel>Matrícula</FormLabel>
-                      <FormControl><Input placeholder="Ex: 123456-7" {...field} onChange={(e) => field.onChange(maskMatricula(e.target.value))} maxLength={9} /></FormControl>
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            placeholder="Ex: 123456-7"
+                            {...field}
+                            onChange={(e) => field.onChange(maskMatricula(e.target.value))}
+                            onBlur={() => {
+                              field.onBlur()
+                              handleMatriculaBlur()
+                            }}
+                            maxLength={9}
+                            className={isCheckingMatricula ? 'pr-10' : ''}
+                          />
+                        </FormControl>
+                        {isCheckingMatricula && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <Loader2 className="h-4 w-4 animate-spin text-[#97836a]" />
+                          </div>
+                        )}
+                      </div>
+                      {isCheckingMatricula && (
+                        <p className="text-xs text-[#97836a] animate-pulse mt-1">Validando matrícula...</p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )} />

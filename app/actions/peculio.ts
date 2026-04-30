@@ -70,6 +70,88 @@ export async function cadastrarPeculio(data: CadastrarPeculioParams) {
   }
 }
 
+interface LancamentoItem {
+  policialId: number
+  postoDeServicoId: number
+  disponibilidade: Disponibilidade
+  situacaoFuncional: SituacaoFuncional
+  condicaoOperacional: CondicaoOperacional
+}
+
+interface CadastrarPeculioEmLoteParams {
+  mes: number
+  ano: number
+  lancamentos: LancamentoItem[]
+}
+
+export async function cadastrarPeculioEmLote(data: CadastrarPeculioEmLoteParams) {
+  try {
+    if (!data.lancamentos || data.lancamentos.length === 0) {
+      return { error: "Nenhum lançamento informado.", success: false }
+    }
+
+    const dataMesAno = new Date(data.ano, data.mes - 1, 1)
+
+    // Verificar duplicidade para cada policial no lote
+    const policialIds = data.lancamentos.map(l => l.policialId)
+    
+    // Verificar se há IDs duplicados dentro do próprio lote
+    const idsUnicos = new Set(policialIds)
+    if (idsUnicos.size !== policialIds.length) {
+      return { error: "Existem policiais duplicados na lista. Cada policial pode aparecer apenas uma vez.", success: false }
+    }
+
+    // Verificar se algum policial já possui pecúlio para este período
+    const existentes = await prisma.peculio.findMany({
+      where: {
+        policialId: { in: policialIds },
+        dataMesAno: dataMesAno
+      },
+      include: {
+        policial: {
+          select: { nomeGuerra: true, nomeCompleto: true }
+        }
+      }
+    })
+
+    if (existentes.length > 0) {
+      const nomes = existentes.map(e => e.policial.nomeGuerra || e.policial.nomeCompleto).join(", ")
+      return { 
+        error: `Os seguintes policiais já possuem pecúlio para ${data.mes}/${data.ano}: ${nomes}`, 
+        success: false 
+      }
+    }
+
+    // Inserção atômica com transaction
+    const resultado = await prisma.$transaction(
+      data.lancamentos.map(lancamento =>
+        prisma.peculio.create({
+          data: {
+            policialId: lancamento.policialId,
+            postoDeServicoId: lancamento.postoDeServicoId,
+            disponibilidade: lancamento.disponibilidade,
+            situacaoFuncional: lancamento.situacaoFuncional,
+            condicaoOperacional: lancamento.condicaoOperacional,
+            dataMesAno: dataMesAno
+          }
+        })
+      )
+    )
+
+    revalidatePath('/dashboard')
+    revalidatePath('/dashboard/peculio')
+
+    return { 
+      success: true, 
+      message: `${resultado.length} lançamento(s) de pecúlio registrado(s) com sucesso!`,
+      count: resultado.length 
+    }
+  } catch (error) {
+    console.error("Erro ao cadastrar pecúlio em lote:", error)
+    return { error: "Ocorreu um erro interno ao cadastrar o lote de pecúlio.", success: false }
+  }
+}
+
 export async function getPoliciaisOptions() {
   try {
     const policiais = await prisma.policial.findMany({

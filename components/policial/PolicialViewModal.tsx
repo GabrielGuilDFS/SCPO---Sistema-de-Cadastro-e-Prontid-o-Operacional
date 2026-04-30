@@ -20,7 +20,7 @@ import { getHistoricoPeculio, getPostosOptions } from "@/app/actions/peculio"
 import { getDependentesByPolicial, adicionarDependente, removerDependente, atualizarDependente } from "@/app/dashboard/dependentes/actions"
 import { toast } from "sonner"
 import { PolicialForm } from "./PolicialForm"
-import { PeculioForm } from "@/components/peculio/PeculioForm"
+import { PeculioFormIndividual } from "@/components/peculio/PeculioFormIndividual"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -184,10 +184,8 @@ function PeculioTabContent({
           </h3>
         </div>
         <div className="-mx-6 px-6">
-          <PeculioForm
-            policiais={[policialFormatado]}
+          <PeculioFormIndividual
             postos={postos}
-            isEditing={isEditingPeculio}
             fixedPolicialId={policial.id}
             initialData={peculioAtual}
             onSuccess={() => setIsEditingPeculio(false)}

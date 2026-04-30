@@ -7,10 +7,32 @@ import { Prisma } from "@prisma/client"
 import { policialFormSchema, PolicialFormData } from "@/lib/schemas/policial"
 import bcrypt from "bcrypt"
 
+export async function verificarMatriculaExistente(matricula: string): Promise<boolean> {
+  try {
+    const policial = await prisma.policial.findUnique({
+      where: { matricula },
+      select: { id: true }
+    })
+    return !!policial
+  } catch (error) {
+    console.error("Erro ao verificar matrícula:", error)
+    return false
+  }
+}
+
 export async function salvarDadosPolicial(data: PolicialFormData) {
   try {
     // Valida os dados com o schema
     const validData = policialFormSchema.parse(data);
+
+    // Validação server-side de matrícula duplicada (última camada de proteção)
+    const matriculaExistente = await prisma.policial.findUnique({
+      where: { matricula: validData.matricula },
+      select: { id: true }
+    })
+    if (matriculaExistente) {
+      return { success: false, message: "Esta matrícula já está cadastrada no sistema." }
+    }
 
     const policialData: Prisma.PolicialCreateInput = {
       nomeCompleto: validData.nomeCompleto,

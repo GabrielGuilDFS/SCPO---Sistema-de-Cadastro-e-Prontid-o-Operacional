@@ -51,13 +51,13 @@ export default async function NovoPeculioPage() {
 
   return (
     <div className="min-h-full p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div className="mb-6">
           <h2 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
             <ClipboardCheck className="h-8 w-8 text-[#cca471]" />
-            Lançar Pecúlio
+            Lançamento em Lote de Pecúlio
           </h2>
-          <p className="text-[#b1a99f] mt-1">Registre a prontidão e disponibilidade do policial.</p>
+          <p className="text-[#b1a99f] mt-1">Registre a prontidão e disponibilidade de múltiplos policiais de uma vez.</p>
         </div>
 
         <div className="bg-white rounded-lg shadow-md overflow-hidden border border-black/10 p-6 md:p-8">
@@ -67,3 +67,4 @@ export default async function NovoPeculioPage() {
     </div>
   )
 }
+

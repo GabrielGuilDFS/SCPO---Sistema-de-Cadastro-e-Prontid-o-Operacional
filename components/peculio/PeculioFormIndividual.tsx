@@ -141,7 +141,7 @@ export function PeculioFormIndividual({
                       </SelectValue>
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4}>
                     {postos.map(posto => (
                       <SelectItem key={posto.id} value={posto.id.toString()}>
                         {posto.nome} {posto.subunidade ? `(${posto.subunidade.nome})` : ''}
@@ -170,7 +170,7 @@ export function PeculioFormIndividual({
                       </SelectValue>
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4}>
                     {meses.map(mes => (
                       <SelectItem key={mes.value} value={mes.value.toString()}>
                         {mes.label}
@@ -197,7 +197,7 @@ export function PeculioFormIndividual({
                       </SelectValue>
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4}>
                     {anos.map(ano => (
                       <SelectItem key={ano} value={ano.toString()}>
                         {ano}
@@ -226,7 +226,7 @@ export function PeculioFormIndividual({
                       </SelectValue>
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4}>
                     <SelectItem value="PRONTO">Pronto</SelectItem>
                     <SelectItem value="INDISPONIVEL">Indisponível</SelectItem>
                     <SelectItem value="FORA_DE_ESCALA">Fora de Escala</SelectItem>
@@ -251,7 +251,7 @@ export function PeculioFormIndividual({
                       </SelectValue>
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4}>
                     <SelectItem value="ATIVO">Ativo</SelectItem>
                     <SelectItem value="FERIAS">Férias</SelectItem>
                     <SelectItem value="LICENCA_PREMIO">Licença Prêmio</SelectItem>
@@ -277,7 +277,7 @@ export function PeculioFormIndividual({
                       </SelectValue>
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4}>
                     <SelectItem value="APTO_TOTAL">Apto Total</SelectItem>
                     <SelectItem value="APTO_RESTRICAO">Apto com Restrição</SelectItem>
                     <SelectItem value="INAPTO_TEMPORARIO">Inapto Temporário</SelectItem>

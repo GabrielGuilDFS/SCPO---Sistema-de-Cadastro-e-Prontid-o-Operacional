@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useTransition, useCallback, useEffect, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { PolicialViewModal } from "@/components/policial/PolicialViewModal"
 import { Input } from "@/components/ui/input"
-import { Search } from "lucide-react"
+import { Search, Loader2 } from "lucide-react"
+import { buscarPoliciais } from "@/app/actions/policiais"
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -16,11 +17,8 @@ interface PoliceGridProps {
   subunidades?: { id: number; nome: string }[]
   funcoes?: { id: number; funcao: string }[]
   highlight?: boolean
+  sessionMatricula?: string
 }
-
-// ---------------------------------------------------------------------------
-// Helpers locais
-// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // Helpers locais
@@ -48,10 +46,13 @@ function buildCracha(policial: any): string {
 // Componente
 // ---------------------------------------------------------------------------
 
-export function PoliceGrid({ policiais, subunidades = [], funcoes = [], highlight = false }: PoliceGridProps) {
+export function PoliceGrid({ policiais, subunidades = [], funcoes = [], highlight = false, sessionMatricula }: PoliceGridProps) {
   const [selectedPolicial, setSelectedPolicial] = useState<any | null>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState<any[] | null>(null)
+  const [isPending, startTransition] = useTransition()
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleOpenModal = (policial: any) => {
     setSelectedPolicial(policial)
@@ -60,23 +61,41 @@ export function PoliceGrid({ policiais, subunidades = [], funcoes = [], highligh
 
   const handleCloseModal = () => {
     setIsOpen(false)
-    // Limpa o selecionado após a animação de fechamento
     setTimeout(() => setSelectedPolicial(null), 300)
   }
 
-  const filteredPoliciais = useMemo(() => {
-    if (!searchQuery.trim()) return policiais
+  // Debounced server-side search
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query)
 
-    const lowerQuery = searchQuery.toLowerCase()
-    return policiais.filter((p) => {
-      const nomeCompleto = p.nomeCompleto?.toLowerCase() || ""
-      const nomeGuerra = p.nomeGuerra?.toLowerCase() || ""
-      const matricula = p.matricula?.toLowerCase() || ""
-      return nomeCompleto.includes(lowerQuery) || nomeGuerra.includes(lowerQuery) || matricula.includes(lowerQuery)
-    })
-  }, [policiais, searchQuery])
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+    }
 
-  const sectionTitle = searchQuery.trim() ? "Resultado da Busca" : "Efetivo Recente"
+    if (!query.trim()) {
+      setSearchResults(null)
+      return
+    }
+
+    debounceRef.current = setTimeout(() => {
+      startTransition(async () => {
+        const results = await buscarPoliciais(query)
+        setSearchResults(results as any[])
+      })
+    }, 400)
+  }, [])
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
+
+  const displayPoliciais = searchResults !== null ? searchResults : policiais
+  const sectionTitle = searchQuery.trim()
+    ? `Resultado da Busca${!isPending && searchResults ? ` (${searchResults.length})` : ''}`
+    : "Efetivo Recente"
 
   return (
     <>
@@ -89,19 +108,24 @@ export function PoliceGrid({ policiais, subunidades = [], funcoes = [], highligh
               type="text"
               placeholder="Buscar por nome ou matrícula..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
               className="pl-9 bg-white border-none shadow-sm focus-visible:ring-[#cca471]"
             />
+            {isPending && (
+              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#cca471] animate-spin" />
+            )}
           </div>
         </div>
 
-        {filteredPoliciais.length === 0 ? (
+        {displayPoliciais.length === 0 ? (
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-8 flex flex-col items-center justify-center text-center shadow-inner">
-            <p className="text-slate-600 font-medium">Nenhum militar encontrado com estes critérios.</p>
+            <p className="text-slate-600 font-medium">
+              {isPending ? "Buscando policiais..." : "Nenhum militar encontrado com estes critérios."}
+            </p>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {filteredPoliciais.map((policial) => {
+            {displayPoliciais.map((policial) => {
               const cracha = buildCracha(policial)
               const iniciais = policial.nomeCompleto?.substring(0, 2).toUpperCase() ?? "PM"
               const companhia = policial.subunidade?.nome ?? "Sem Cia"
@@ -190,6 +214,7 @@ export function PoliceGrid({ policiais, subunidades = [], funcoes = [], highligh
         policial={selectedPolicial}
         subunidades={subunidades}
         funcoes={funcoes}
+        sessionMatricula={sessionMatricula}
       />
     </>
   )

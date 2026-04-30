@@ -136,7 +136,7 @@ export function PeculioForm({ policiais, postos }: PeculioFormProps) {
     },
   })
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, prepend, remove } = useFieldArray({
     control: form.control,
     name: "lancamentos",
   })
@@ -241,7 +241,7 @@ export function PeculioForm({ policiais, postos }: PeculioFormProps) {
   const anos = Array.from({ length: 10 }, (_, i) => currentYear - 2 + i)
 
   const addNewRow = () => {
-    append({
+    prepend({
       policialId: undefined as any,
       postoDeServicoId: undefined as any,
       disponibilidade: undefined as any,
@@ -267,17 +267,21 @@ export function PeculioForm({ policiais, postos }: PeculioFormProps) {
               control={form.control}
               name="mes"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="w-full">
                   <FormLabel>Mês de Referência</FormLabel>
                   <Select onValueChange={(val) => val && field.onChange(parseInt(val))} value={field.value?.toString() || ""}>
                     <FormControl>
-                      <SelectTrigger className="h-10">
+                      <SelectTrigger className="h-10 w-full">
                         <SelectValue placeholder="Mês">
                           {field.value ? meses.find(m => m.value === field.value)?.label : ""}
                         </SelectValue>
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent
+                      position="popper"
+                      sideOffset={4}
+                      className="max-h-[280px] w-[var(--radix-select-trigger-width)] overflow-y-auto"
+                    >
                       {meses.map(mes => (
                         <SelectItem key={mes.value} value={mes.value.toString()}>
                           {mes.label}
@@ -294,17 +298,21 @@ export function PeculioForm({ policiais, postos }: PeculioFormProps) {
               control={form.control}
               name="ano"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="w-full">
                   <FormLabel>Ano de Referência</FormLabel>
                   <Select onValueChange={(val) => val && field.onChange(parseInt(val))} value={field.value?.toString() || ""}>
                     <FormControl>
-                      <SelectTrigger className="h-10">
+                      <SelectTrigger className="h-10 w-full">
                         <SelectValue placeholder="Ano">
                           {field.value || ""}
                         </SelectValue>
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent
+                      position="popper"
+                      sideOffset={4}
+                      className="max-h-[280px] w-[var(--radix-select-trigger-width)] overflow-y-auto"
+                    >
                       {anos.map(ano => (
                         <SelectItem key={ano} value={ano.toString()}>
                           {ano}
@@ -429,10 +437,14 @@ export function PeculioForm({ policiais, postos }: PeculioFormProps) {
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </PopoverTrigger>
                             </FormControl>
-                            <PopoverContent className="w-[400px] p-0">
-                              <Command>
-                                <CommandInput placeholder="Buscar por nome ou matrícula..." />
-                                <CommandList>
+                            <PopoverContent
+                              className="p-0 w-[var(--radix-popover-trigger-width)] min-w-[300px]"
+                              sideOffset={4}
+                              align="start"
+                            >
+                              <Command className="w-full">
+                                <CommandInput placeholder="Buscar por nome ou matrícula..." className="h-9" />
+                                <CommandList className="max-h-[280px] overflow-y-auto">
                                   <CommandEmpty>Nenhum policial encontrado.</CommandEmpty>
                                   <CommandGroup>
                                     {isLoadingPoliciais ? (
@@ -459,7 +471,9 @@ export function PeculioForm({ policiais, postos }: PeculioFormProps) {
                                                   : "opacity-0"
                                               )}
                                             />
-                                            {policial.grauHierarquico} {policial.nomeGuerra || policial.nomeCompleto} - Mat: {policial.matricula}
+                                            <span className="truncate">
+                                              {policial.grauHierarquico} {policial.nomeGuerra || policial.nomeCompleto} - Mat: {policial.matricula}
+                                            </span>
                                           </CommandItem>
                                         ))
                                     )}
@@ -478,11 +492,14 @@ export function PeculioForm({ policiais, postos }: PeculioFormProps) {
                       control={form.control}
                       name={`lancamentos.${index}.postoDeServicoId`}
                       render={({ field: formField }) => (
-                        <FormItem>
+                        <FormItem className="w-full">
                           <FormLabel className="text-xs">Posto de Serviço</FormLabel>
-                          <Select onValueChange={(val) => val && formField.onChange(parseInt(val))} value={formField.value?.toString() || ""}>
+                          <Select
+                            onValueChange={(val) => val && formField.onChange(parseInt(val))}
+                            value={formField.value?.toString() || ""}
+                          >
                             <FormControl>
-                              <SelectTrigger className="h-10">
+                              <SelectTrigger className="w-full bg-white min-h-[40px] md:min-h-[40px] md:max-w-[280px]">
                                 <SelectValue placeholder="Selecione o posto">
                                   {formField.value ? (() => {
                                     const posto = postos.find(p => p.id === formField.value);
@@ -491,7 +508,13 @@ export function PeculioForm({ policiais, postos }: PeculioFormProps) {
                                 </SelectValue>
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+
+                            <SelectContent
+                              position="popper"
+                              sideOffset={4}
+                              align="start"
+                              className="max-h-[200px] w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)] overflow-y-auto bg-white"
+                            >
                               {postos.map(posto => (
                                 <SelectItem key={posto.id} value={posto.id.toString()}>
                                   {posto.nome} {posto.subunidade ? `(${posto.subunidade.nome})` : ''}
@@ -511,17 +534,21 @@ export function PeculioForm({ policiais, postos }: PeculioFormProps) {
                       control={form.control}
                       name={`lancamentos.${index}.disponibilidade`}
                       render={({ field: formField }) => (
-                        <FormItem>
+                        <FormItem className="w-full">
                           <FormLabel className="text-xs">Disponibilidade</FormLabel>
                           <Select onValueChange={formField.onChange} value={formField.value || ""}>
                             <FormControl>
-                              <SelectTrigger className="h-10">
+                              <SelectTrigger className="w-full bg-white min-h-[40px] md:min-h-[40px] md:max-w-[150px]">
                                 <SelectValue placeholder="Selecione">
                                   {formField.value ? DISPONIBILIDADE_LABELS[formField.value] : ""}
                                 </SelectValue>
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent
+                              position="popper"
+                              sideOffset={4}
+                              className="max-h-[280px] w-[var(--radix-select-trigger-width)] overflow-y-auto"
+                            >
                               <SelectItem value="PRONTO">Pronto</SelectItem>
                               <SelectItem value="INDISPONIVEL">Indisponível</SelectItem>
                               <SelectItem value="FORA_DE_ESCALA">Fora de Escala</SelectItem>
@@ -536,17 +563,21 @@ export function PeculioForm({ policiais, postos }: PeculioFormProps) {
                       control={form.control}
                       name={`lancamentos.${index}.situacaoFuncional`}
                       render={({ field: formField }) => (
-                        <FormItem>
+                        <FormItem className="w-full">
                           <FormLabel className="text-xs">Situação Funcional</FormLabel>
                           <Select onValueChange={formField.onChange} value={formField.value || ""}>
                             <FormControl>
-                              <SelectTrigger className="h-10">
+                              <SelectTrigger className="w-full bg-white min-h-[40px] md:min-h-[40px] md:max-w-[150px]">
                                 <SelectValue placeholder="Selecione">
                                   {formField.value ? SITUACAO_LABELS[formField.value] : ""}
                                 </SelectValue>
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent
+                              position="popper"
+                              sideOffset={4}
+                              className="max-h-[280px] w-[var(--radix-select-trigger-width)] overflow-y-auto"
+                            >
                               <SelectItem value="ATIVO">Ativo</SelectItem>
                               <SelectItem value="FERIAS">Férias</SelectItem>
                               <SelectItem value="LICENCA_PREMIO">Licença Prêmio</SelectItem>
@@ -562,17 +593,21 @@ export function PeculioForm({ policiais, postos }: PeculioFormProps) {
                       control={form.control}
                       name={`lancamentos.${index}.condicaoOperacional`}
                       render={({ field: formField }) => (
-                        <FormItem>
+                        <FormItem className="w-full">
                           <FormLabel className="text-xs">Condição Operacional</FormLabel>
                           <Select onValueChange={formField.onChange} value={formField.value || ""}>
                             <FormControl>
-                              <SelectTrigger className="h-10">
+                              <SelectTrigger className="w-full bg-white min-h-[40px] md:min-h-[40px] md:max-w-[170px]">
                                 <SelectValue placeholder="Selecione">
                                   {formField.value ? CONDICAO_LABELS[formField.value] : ""}
                                 </SelectValue>
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent
+                              position="popper"
+                              sideOffset={4}
+                              className="max-h-[280px] w-[var(--radix-select-trigger-width)] overflow-y-auto"
+                            >
                               <SelectItem value="APTO_TOTAL">Apto Total</SelectItem>
                               <SelectItem value="APTO_RESTRICAO">Apto com Restrição</SelectItem>
                               <SelectItem value="INAPTO_TEMPORARIO">Inapto Temporário</SelectItem>

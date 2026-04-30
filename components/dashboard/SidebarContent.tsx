@@ -11,6 +11,7 @@ import {
   ArrowRightLeft,
   LogOut,
   Shield,
+  User,
 } from "lucide-react"
 import { signOut } from "next-auth/react"
 import {
@@ -229,26 +230,30 @@ export function SidebarContent({
         <div className="border-t border-white/10 mt-auto bg-[#2a2218] flex flex-col shrink-0 w-full overflow-hidden pt-4 pb-22 px-3 gap-4">
 
           {/* Info do usuário - Com 'flex-1 min-w-0' para travar o texto */}
-          <div className={cn(
-            "flex items-center gap-3 transition-all duration-300 w-full overflow-hidden",
-            collapsed ? "lg:justify-center" : "justify-start px-1"
-          )}>
-            <div className="h-8 w-8 rounded-full bg-[#97836a]/30 flex items-center justify-center shrink-0 border border-[#97836a]/20">
-              <Shield className="h-4 w-4 text-[#97836a]" />
+          <Link
+            href="/dashboard/perfil"
+            onClick={onLinkClick}
+            className={cn(
+              "flex items-center gap-3 transition-all duration-300 w-full overflow-hidden p-1 rounded-lg hover:bg-white/5 group/profile",
+              collapsed ? "lg:justify-center" : "justify-start"
+            )}
+          >
+            <div className="h-8 w-8 rounded-full bg-[#97836a]/30 flex items-center justify-center shrink-0 border border-[#97836a]/20 group-hover/profile:border-[#cca471]/50 transition-colors">
+              <User className="h-4 w-4 text-[#97836a] group-hover/profile:text-[#cca471]" />
             </div>
 
             <div className={cn(
               "flex-col overflow-hidden flex-1 min-w-0",
               collapsed ? "lg:hidden" : "flex"
             )}>
-              <p className="text-white text-xs font-semibold truncate leading-tight w-full">
+              <p className="text-white text-xs font-semibold truncate leading-tight w-full group-hover/profile:text-[#cca471] transition-colors">
                 {nomeUsuario || "Usuário"}
               </p>
               <p className="text-[#97836a] text-[10px] truncate leading-tight w-full uppercase tracking-tighter">
                 {userProfile || "Operador"}
               </p>
             </div>
-          </div>
+          </Link>
 
           {/* Logout */}
           <AlertDialog>

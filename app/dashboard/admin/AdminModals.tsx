@@ -22,9 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { 
+import {
   criarSubunidade, criarPostoServico, criarFuncao,
-  atualizarSubunidade, atualizarPosto, atualizarFuncao 
+  atualizarSubunidade, atualizarPosto, atualizarFuncao
 } from "@/app/admin/actions"
 import { toast } from "sonner"
 
@@ -119,7 +119,7 @@ export function AdminModals({ type, subunidades = [], initialData, mode = "creat
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-6">
+          <div className="grid gap-4 py-6 pb-10">
             <div className="grid gap-2">
               <Label htmlFor="nome">{type === "funcao" ? "Nome da Função" : "Nome Completo"}</Label>
               <Input
@@ -148,10 +148,14 @@ export function AdminModals({ type, subunidades = [], initialData, mode = "creat
               <div className="grid gap-2">
                 <Label htmlFor="subunidade">Subunidade Vinculada</Label>
                 <Select onValueChange={(val) => setSubId(val || "")} value={subId} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a unidade" />
+                  <SelectTrigger className="w-full bg-white min-h-[40px] md:min-h-[40px] md:max-w-[260px]">
+                    <SelectValue placeholder="Selecione a subunidade" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent
+                    position="popper"
+                    sideOffset={4}
+                    className="max-h-60 w-[var(--radix-select-trigger-width)] overflow-hidden"
+                  >
                     {subunidades.map((sub) => (
                       <SelectItem key={sub.id} value={sub.id.toString()}>
                         {sub.nome} ({sub.sigla})

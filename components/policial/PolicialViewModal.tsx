@@ -42,6 +42,7 @@ interface PolicialViewModalProps {
   policial: any | null
   subunidades?: { id: number; nome: string }[]
   funcoes?: { id: number; funcao: string }[]
+  sessionMatricula?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -350,7 +351,8 @@ export function PolicialViewModal({
   onClose,
   policial,
   subunidades = [],
-  funcoes = []
+  funcoes = [],
+  sessionMatricula
 }: PolicialViewModalProps) {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -379,6 +381,7 @@ export function PolicialViewModal({
   if (!policial) return null
 
   const isAtivo = policial.status !== 'INATIVO' && (policial.login?.statusAtivo ?? true)
+  const isSelf = sessionMatricula && policial.matricula === sessionMatricula
 
   const handleToggleStatus = async () => {
     setIsLoading(true)
@@ -702,7 +705,15 @@ export function PolicialViewModal({
               <Button
                 variant={isAtivo ? "destructive" : "default"}
                 className={isAtivo ? "" : "bg-emerald-600 hover:bg-emerald-700 text-white"}
-                onClick={() => setIsConfirmOpen(true)}
+                onClick={() => {
+                  if (isSelf && isAtivo) {
+                    toast.error("Ação bloqueada", {
+                      description: "Você não pode desativar seu próprio perfil. Solicite que outro administrador realize esta ação.",
+                    })
+                    return
+                  }
+                  setIsConfirmOpen(true)
+                }}
                 disabled={isLoading}
               >
                 {isAtivo ? (

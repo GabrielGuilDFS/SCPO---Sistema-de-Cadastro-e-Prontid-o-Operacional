@@ -17,7 +17,7 @@ export default async function DashboardHome() {
   const activeFilter = {
     AND: [
       { status: { not: 'INATIVO' } },
-      { OR: [ { login: null }, { login: { statusAtivo: true } } ] }
+      { OR: [{ login: null }, { login: { statusAtivo: true } }] }
     ]
   }
 
@@ -101,6 +101,7 @@ export default async function DashboardHome() {
           policiais={policiaisProps as any[]}
           subunidades={subunidades}
           funcoes={funcoes}
+          sessionMatricula={session?.user?.matricula}
         />
       </section>
     </div>

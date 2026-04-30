@@ -60,7 +60,7 @@ export default async function NovoPeculioPage() {
           <p className="text-[#b1a99f] mt-1">Registre a prontidão e disponibilidade de múltiplos policiais de uma vez.</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden border border-black/10 p-6 md:p-8">
+        <div className="bg-white rounded-lg shadow-md border border-black/10 p-6 md:p-8">
           <PeculioForm policiais={policiais} postos={postos} />
         </div>
       </div>

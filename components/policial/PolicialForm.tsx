@@ -373,57 +373,72 @@ export function PolicialForm({ subunidades = [], funcoes = [], initialData, onSu
                 {/* Upload Foto */}
                 <div className="flex flex-col items-center justify-center shrink-0 pt-2">
                   <div
-                    className="relative w-32 h-32 rounded-full border-4 border-slate-200 bg-slate-100 flex items-center justify-center overflow-hidden cursor-pointer group hover:border-[#cca471] transition-all shadow-sm"
+                    className="relative w-32 h-32 rounded-full border-4 border-slate-200 bg-slate-100 flex items-center justify-center overflow-hidden cursor-pointer group hover:border-[#cca471] transition-all shadow-sm focus-within:ring-2 focus-within:ring-[#cca471] focus-within:ring-offset-2"
                     onClick={() => fileInputRef.current?.click()}
+                    onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Selecionar foto do policial"
                   >
                     {previewUrl ? (
-                      <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                      <img
+                        src={previewUrl}
+                        alt="Prévia da foto do policial"
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                      />
                     ) : (
                       <Camera className="w-8 h-8 text-slate-400 group-hover:text-[#cca471] transition-colors" />
                     )}
+
+                    {/* Overlay de interação */}
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="text-white text-xs font-semibold">Foto</span>
+                      <span className="text-white text-xs font-semibold">Alterar Foto</span>
                     </div>
                   </div>
+
+                  {/* Input Oculto - Otimizado para performance no Windows */}
                   <input
                     type="file"
-                    accept="image/*"
+                    accept=".jpg,.jpeg,.png"
                     className="hidden"
                     ref={fileInputRef}
                     onChange={handleImageChange}
+                    aria-hidden="true"
                   />
-                  <p className="text-xs text-slate-500 mt-2 text-center w-32">Clique para adicionar foto</p>
+
+                  <p className="text-[10px] uppercase font-bold text-slate-500 mt-2 text-center w-32 tracking-wider">
+                    Clique para adicionar foto
+                  </p>
                 </div>
 
                 {/* Identificação Funcional e Pessoal */}
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                  <FormField control={form.control} name="grauHierarquico" render={({ field }: { field: any }) => (
-                    <FormItem>
-                      <FormLabel>Grau Hierárquico</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || 'none'}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione">
-                              {field.value && field.value !== 'none' ? SELECT_LABELS[field.value] : "Selecione"}
-                            </SelectValue>
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="none">Selecione / Desmarcar</SelectItem>
-                          <SelectItem value="SOLDADO">Soldado</SelectItem>
-                          <SelectItem value="CABO">Cabo</SelectItem>
-                          <SelectItem value="SARGENTO">Sargento</SelectItem>
-                          <SelectItem value="SUBTENENTE">Subtenente</SelectItem>
-                          <SelectItem value="TENENTE">Tenente</SelectItem>
-                          <SelectItem value="CAPITAO">Capitão</SelectItem>
-                          <SelectItem value="MAJOR">Major</SelectItem>
-                          <SelectItem value="TENENTE_CORONEL">Tenente Coronel</SelectItem>
-                          <SelectItem value="CORONEL">Coronel</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">                  <FormField control={form.control} name="grauHierarquico" render={({ field }: { field: any }) => (
+                  <FormItem>
+                    <FormLabel>Grau Hierárquico</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || 'none'}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione">
+                            {field.value && field.value !== 'none' ? SELECT_LABELS[field.value] : "Selecione"}
+                          </SelectValue>
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">Selecione / Desmarcar</SelectItem>
+                        <SelectItem value="SOLDADO">Soldado</SelectItem>
+                        <SelectItem value="CABO">Cabo</SelectItem>
+                        <SelectItem value="SARGENTO">Sargento</SelectItem>
+                        <SelectItem value="SUBTENENTE">Subtenente</SelectItem>
+                        <SelectItem value="TENENTE">Tenente</SelectItem>
+                        <SelectItem value="CAPITAO">Capitão</SelectItem>
+                        <SelectItem value="MAJOR">Major</SelectItem>
+                        <SelectItem value="TENENTE_CORONEL">Tenente Coronel</SelectItem>
+                        <SelectItem value="CORONEL">Coronel</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
 
                   <FormField control={form.control} name="matricula" render={({ field }: { field: any }) => (
                     <FormItem>

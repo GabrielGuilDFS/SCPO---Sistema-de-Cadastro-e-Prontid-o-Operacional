@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { KPIBoard } from "@/components/dashboard/KPIBoard"
+import { DashboardKPIWrapper } from "@/components/dashboard/DashboardKPIWrapper"
+import { DashboardCharts } from "@/components/dashboard/DashboardCharts"
 import { PoliceGrid } from "@/components/dashboard/PoliceGrid"
 import prisma from "@/lib/prisma"
 import { getPeculioResumoMes } from "@/lib/data/peculio-dashboard"
@@ -34,10 +35,12 @@ export default async function DashboardHome() {
     )
   }
 
-  const [subunidades, funcoes, peculioResumo] = await Promise.all([
+  // Buscar tudo em paralelo para eficiência
+  const [subunidades, funcoes, peculioResumo, totalInativos] = await Promise.all([
     prisma.subunidade.findMany({ orderBy: { nome: 'asc' } }),
     prisma.funcaoAtual.findMany({ orderBy: { funcao: 'asc' } }),
     getPeculioResumoMes(mesAtual, anoAtual),
+    prisma.policial.count({ where: { status: 'INATIVO' } }),
   ])
 
   // Últimos 10 militares cadastrados — inclui todas as relações para o modal + pecúlio do mês atual
@@ -77,6 +80,23 @@ export default async function DashboardHome() {
     postoAtual: p.peculios?.[0]?.postoDeServico?.nome ?? null,
   }))
 
+  // Dados dos gráficos analíticos
+  const semPeculio = efetivoTotal - peculioResumo.totalLancamentos
+  const chartsData = {
+    cobertura: {
+      comPeculio: peculioResumo.totalLancamentos,
+      semPeculio: Math.max(0, semPeculio),
+    },
+    prontidao: {
+      prontos: peculioResumo.totalProntos,
+      outros: peculioResumo.totalAfastados,
+    },
+    atividade: {
+      ativos: efetivoTotal,
+      inativos: totalInativos,
+    },
+  }
+
   return (
     <div className="min-h-full p-4 md:p-6 lg:p-8 space-y-8">
       <section>
@@ -87,13 +107,19 @@ export default async function DashboardHome() {
       </section>
 
       <section>
-        <KPIBoard
+        <DashboardKPIWrapper
           efetivoTotal={efetivoTotal}
           totalProntos={peculioResumo.totalProntos}
           totalAfastados={peculioResumo.totalAfastados}
           totalLancamentos={peculioResumo.totalLancamentos}
           dataDistribuicao={peculioResumo.distribuicaoPorPosto}
         />
+      </section>
+
+      {/* Seção de Gráficos Analíticos */}
+      <section>
+        <h3 className="font-semibold text-white text-lg mb-4">Análise Operacional</h3>
+        <DashboardCharts data={chartsData} />
       </section>
 
       <section>

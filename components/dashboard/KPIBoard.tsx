@@ -5,12 +5,15 @@ import { Shield, ShieldAlert, ShieldCheck, Users } from "lucide-react"
 import { Pie, PieChart, Cell } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 
+export type DrilldownType = 'efetivo' | 'prontidao' | 'afastamentos'
+
 interface KPIBoardProps {
   efetivoTotal: number
   totalProntos: number
   totalAfastados: number
   totalLancamentos: number
   dataDistribuicao: { name: string; value: number; color: string }[]
+  onCardClick?: (tipo: DrilldownType) => void
 }
 
 const chartConfig = {
@@ -19,16 +22,21 @@ const chartConfig = {
   },
 }
 
-export function KPIBoard({ efetivoTotal, totalProntos, totalAfastados, totalLancamentos, dataDistribuicao }: KPIBoardProps) {
+export function KPIBoard({ efetivoTotal, totalProntos, totalAfastados, totalLancamentos, dataDistribuicao, onCardClick }: KPIBoardProps) {
   const cobertura = efetivoTotal > 0 ? Math.round((totalLancamentos / efetivoTotal) * 100) : 0
   const taxaProntidao = efetivoTotal > 0 ? totalProntos / efetivoTotal : 0
   const prontidaoSaudavel = taxaProntidao >= 0.70
+
+  const clickableClass = onCardClick ? "cursor-pointer hover:ring-2 hover:ring-[#cca471]/40 active:scale-[0.98]" : ""
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
 
       {/* Efetivo Total (RH) */}
-      <Card className="border-2 border-black shadow-md transition-all hover:shadow-lg">
+      <Card
+        className={`border-2 border-black shadow-md transition-all hover:shadow-lg ${clickableClass}`}
+        onClick={() => onCardClick?.('efetivo')}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-slate-600">Efetivo Total</CardTitle>
           <Users className="h-4 w-4 text-[#97836a]" />
@@ -56,7 +64,10 @@ export function KPIBoard({ efetivoTotal, totalProntos, totalAfastados, totalLanc
       </Card>
 
       {/* Em Prontidão — muda de cor abaixo de 70% */}
-      <Card className={`border-2 shadow-md transition-all hover:shadow-lg ${prontidaoSaudavel ? "border-black" : "border-amber-400"}`}>
+      <Card
+        className={`border-2 shadow-md transition-all hover:shadow-lg ${prontidaoSaudavel ? "border-black" : "border-amber-400"} ${clickableClass}`}
+        onClick={() => onCardClick?.('prontidao')}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-slate-600">Em Prontidão</CardTitle>
           <div className="flex items-center gap-1">
@@ -86,7 +97,10 @@ export function KPIBoard({ efetivoTotal, totalProntos, totalAfastados, totalLanc
       </Card>
 
       {/* Afastamentos */}
-      <Card className="border-2 border-black shadow-md transition-all hover:shadow-lg">
+      <Card
+        className={`border-2 border-black shadow-md transition-all hover:shadow-lg ${clickableClass}`}
+        onClick={() => onCardClick?.('afastamentos')}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-slate-600">Afastamentos</CardTitle>
           <ShieldAlert className="h-4 w-4 text-amber-500" />

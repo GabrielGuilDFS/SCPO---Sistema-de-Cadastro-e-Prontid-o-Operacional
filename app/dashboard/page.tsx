@@ -88,12 +88,15 @@ export default async function DashboardHome() {
       semPeculio: Math.max(0, semPeculio),
     },
     prontidao: {
-      prontos: peculioResumo.totalProntos,
-      outros: peculioResumo.totalAfastados,
+      ativos: peculioResumo.ativos,
+      ferias: peculioResumo.ferias,
+      licencaPremio: peculioResumo.licencaPremio,
+      licencaMedica: peculioResumo.licencaMedica,
     },
-    atividade: {
-      ativos: efetivoTotal,
-      inativos: totalInativos,
+    situacao: {
+      aptoTotal: peculioResumo.aptoTotal,
+      aptoRestricao: peculioResumo.aptoRestricao,
+      inapto: peculioResumo.inapto,
     },
   }
 

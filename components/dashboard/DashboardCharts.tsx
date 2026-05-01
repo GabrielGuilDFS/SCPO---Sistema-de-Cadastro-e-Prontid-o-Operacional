@@ -10,8 +10,8 @@ import { Bar, BarChart, XAxis, YAxis, CartesianGrid } from "recharts"
 
 export interface DashboardChartsData {
   cobertura: { comPeculio: number; semPeculio: number }
-  prontidao: { prontos: number; outros: number }
-  atividade: { ativos: number; inativos: number }
+  prontidao: { ativos: number; ferias: number; licencaPremio: number; licencaMedica: number }
+  situacao: { aptoTotal: number; aptoRestricao: number; inapto: number }
 }
 
 interface DashboardChartsProps {
@@ -30,34 +30,37 @@ const coberturaConfig = {
 
 const prontidaoConfig = {
   valor: { label: "Quantidade" },
-  prontos: { label: "Prontos", color: "#10b981" },
-  outros: { label: "Outras Situações", color: "#f59e0b" },
-} satisfies ChartConfig
-
-const atividadeConfig = {
-  valor: { label: "Quantidade" },
   ativos: { label: "Ativos", color: "#3c342a" },
-  inativos: { label: "Inativos", color: "#cbd5e1" },
+  ferias: { label: "Férias", color: "#97836a" },
+  licencaPremio: { label: "L. Prêmio", color: "#cbd5e1" },
+  licencaMedica: { label: "L. Médica", color: "#64748b" },
 } satisfies ChartConfig
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
+const situacaoConfig = {
+  valor: { label: "Quantidade" },
+  aptoTotal: { label: "Apto Total", color: "#10b981" },
+  aptoRestricao: { label: "Apto Restrição", color: "#f59e0b" },
+  inapto: { label: "Inapto", color: "#94a3b8" },
+} satisfies ChartConfig
+
 
 export function DashboardCharts({ data }: DashboardChartsProps) {
   const coberturaData = [
-    { name: "Com Pecúlio", valor: data.cobertura.comPeculio, fill: "#97836a" },
-    { name: "Sem Pecúlio", valor: data.cobertura.semPeculio, fill: "#e2dcd5" },
+    { name: "Com Pecúlio", valor: data.cobertura.comPeculio, fill: "var(--color-comPeculio)", type: "comPeculio" },
+    { name: "Sem Pecúlio", valor: data.cobertura.semPeculio, fill: "var(--color-semPeculio)", type: "semPeculio" },
   ]
 
   const prontidaoData = [
-    { name: "Prontos", valor: data.prontidao.prontos, fill: "#10b981" },
-    { name: "Outras Sit.", valor: data.prontidao.outros, fill: "#f59e0b" },
+    { name: "Ativos", valor: data.prontidao.ativos, fill: "var(--color-ativos)", type: "ativos" },
+    { name: "Férias", valor: data.prontidao.ferias, fill: "var(--color-ferias)", type: "ferias" },
+    { name: "L. Prêmio", valor: data.prontidao.licencaPremio, fill: "var(--color-licencaPremio)", type: "licencaPremio" },
+    { name: "L. Médica", valor: data.prontidao.licencaMedica, fill: "var(--color-licencaMedica)", type: "licencaMedica" },
   ]
 
-  const atividadeData = [
-    { name: "Ativos", valor: data.atividade.ativos, fill: "#3c342a" },
-    { name: "Inativos", valor: data.atividade.inativos, fill: "#cbd5e1" },
+  const situacaoData = [
+    { name: "Apto Total", valor: data.situacao.aptoTotal, fill: "var(--color-aptoTotal)", type: "aptoTotal" },
+    { name: "Restrição", valor: data.situacao.aptoRestricao, fill: "var(--color-aptoRestricao)", type: "aptoRestricao" },
+    { name: "Inapto", valor: data.situacao.inapto, fill: "var(--color-inapto)", type: "inapto" },
   ]
 
   return (
@@ -73,8 +76,12 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
         </CardHeader>
         <CardContent>
           <ChartContainer config={coberturaConfig} className="h-[180px] w-full">
-            <BarChart data={coberturaData} barCategoryGap="30%">
-              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#e2e8f0" />
+            <BarChart
+              data={coberturaData}
+              barCategoryGap="30%"
+              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            >
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#00000093" />
               <XAxis
                 dataKey="name"
                 tickLine={false}
@@ -86,15 +93,17 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                 axisLine={false}
                 tick={{ fontSize: 11, fill: "#94a3b8" }}
                 allowDecimals={false}
+                domain={[0, "dataMax + 2"]}
               />
               <ChartTooltip
                 cursor={{ fill: "rgba(151,131,106,0.08)" }}
-                content={<ChartTooltipContent hideLabel />}
+                content={<ChartTooltipContent nameKey="type" />}
               />
               <Bar
                 dataKey="valor"
                 radius={[6, 6, 0, 0]}
-                maxBarSize={50}
+                maxBarSize={40}
+                activeBar={{ fillOpacity: 1 }}
               />
             </BarChart>
           </ChartContainer>
@@ -121,8 +130,12 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
         </CardHeader>
         <CardContent>
           <ChartContainer config={prontidaoConfig} className="h-[180px] w-full">
-            <BarChart data={prontidaoData} barCategoryGap="30%">
-              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#e2e8f0" />
+            <BarChart
+              data={prontidaoData}
+              barCategoryGap="30%"
+              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            >
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#00000083" />
               <XAxis
                 dataKey="name"
                 tickLine={false}
@@ -134,43 +147,57 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                 axisLine={false}
                 tick={{ fontSize: 11, fill: "#94a3b8" }}
                 allowDecimals={false}
+                domain={[0, "dataMax + 2"]}
               />
               <ChartTooltip
                 cursor={{ fill: "rgba(16,185,129,0.08)" }}
-                content={<ChartTooltipContent hideLabel />}
+                content={<ChartTooltipContent nameKey="type" />}
               />
               <Bar
                 dataKey="valor"
                 radius={[6, 6, 0, 0]}
-                maxBarSize={50}
+                maxBarSize={40}
+                activeBar={{ fillOpacity: 0.8 }}
               />
             </BarChart>
           </ChartContainer>
-          <div className="flex items-center justify-center gap-4 mt-2">
+          <div className="flex items-center justify-center gap-3 mt-2">
             <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
-              <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
-              Prontos
+              <span className="w-2.5 h-2.5 rounded-sm bg-[#3c342a]" />
+              Ativo
             </div>
             <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
-              <span className="w-2.5 h-2.5 rounded-sm bg-amber-500" />
-              Outras Sit.
+              <span className="w-2.5 h-2.5 rounded-sm bg-[#97836a]" />
+              Férias
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+              <span className="w-2.5 h-2.5 rounded-sm bg-[#cbd5e1]" />
+              Prêmio
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+              <span className="w-2.5 h-2.5 rounded-sm bg-[#64748b]" />
+              Médica
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Gráfico C: Status de Atividade */}
+      {/* Gráfico C: Situação Operacional */}
       <Card className="border-2 border-black shadow-md">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold text-slate-600">
-            Status de Atividade
+            Situação Operacional
           </CardTitle>
-          <p className="text-[10px] text-slate-400">Policiais Ativos vs Inativos/Reserva</p>
+          <p className="text-[10px] text-slate-400">Aptidão física e restrições de saúde</p>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={atividadeConfig} className="h-[180px] w-full">
-            <BarChart data={atividadeData} barCategoryGap="30%">
-              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#e2e8f0" />
+          <ChartContainer config={situacaoConfig} className="h-[180px] w-full">
+            <BarChart
+              data={situacaoData}
+              barCategoryGap="30%"
+              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            >
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#00000083" />
               <XAxis
                 dataKey="name"
                 tickLine={false}
@@ -182,26 +209,32 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                 axisLine={false}
                 tick={{ fontSize: 11, fill: "#94a3b8" }}
                 allowDecimals={false}
+                domain={[0, "dataMax + 2"]}
               />
               <ChartTooltip
                 cursor={{ fill: "rgba(60,52,42,0.08)" }}
-                content={<ChartTooltipContent hideLabel />}
+                content={<ChartTooltipContent nameKey="type" />}
               />
               <Bar
                 dataKey="valor"
                 radius={[6, 6, 0, 0]}
-                maxBarSize={50}
+                maxBarSize={40}
+                activeBar={{ fillOpacity: 0.8 }}
               />
             </BarChart>
           </ChartContainer>
-          <div className="flex items-center justify-center gap-4 mt-2">
+          <div className="flex items-center justify-center gap-3 mt-2">
             <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
-              <span className="w-2.5 h-2.5 rounded-sm bg-[#3c342a]" />
-              Ativos
+              <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
+              Apto
             </div>
             <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
-              <span className="w-2.5 h-2.5 rounded-sm bg-slate-300" />
-              Inativos
+              <span className="w-2.5 h-2.5 rounded-sm bg-amber-500" />
+              Restrição
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+              <span className="w-2.5 h-2.5 rounded-sm bg-slate-400" />
+              Inapto
             </div>
           </div>
         </CardContent>

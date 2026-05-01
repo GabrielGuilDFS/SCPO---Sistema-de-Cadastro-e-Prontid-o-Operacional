@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { GrauParentesco } from "@prisma/client"
 import { desativarPolicial, ativarPolicial } from "@/app/cadastro/policial/actions"
 import { getHistoricoPeculio, getPostosOptions } from "@/app/actions/peculio"
@@ -133,11 +134,15 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
 function PeculioTabContent({
   policial,
   isEditingPeculio,
-  setIsEditingPeculio
+  setIsEditingPeculio,
+  onPeculioCheck,
+  onSuccess
 }: {
   policial: any,
   isEditingPeculio: boolean,
-  setIsEditingPeculio: (val: boolean) => void
+  setIsEditingPeculio: (val: boolean) => void,
+  onPeculioCheck?: (exists: boolean) => void,
+  onSuccess?: () => void
 }) {
   const [loading, setLoading] = useState(true)
   const [peculioData, setPeculioData] = useState<any>(null)
@@ -155,10 +160,11 @@ function PeculioTabContent({
       ])
       setPeculioData(data)
       setPostos(postosOptions)
+      if (onPeculioCheck) onPeculioCheck(!!data?.peculioAtual)
       setLoading(false)
     }
     load()
-  }, [policial])
+  }, [policial, onPeculioCheck])
 
   if (loading) {
     return <div className="py-10 text-center text-sm text-slate-500">Carregando dados operacionais...</div>
@@ -189,7 +195,11 @@ function PeculioTabContent({
             postos={postos}
             fixedPolicialId={policial.id}
             initialData={peculioAtual}
-            onSuccess={() => setIsEditingPeculio(false)}
+            onSuccess={() => {
+              setIsEditingPeculio(false)
+              if (onPeculioCheck) onPeculioCheck(true)
+              if (onSuccess) onSuccess()
+            }}
           />
         </div>
       </div>
@@ -354,12 +364,14 @@ export function PolicialViewModal({
   funcoes = [],
   sessionMatricula
 }: PolicialViewModalProps) {
+  const router = useRouter()
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState("rh")
   const [activeInnerTab, setActiveInnerTab] = useState("identificacao")
   const [isEditingPeculio, setIsEditingPeculio] = useState(false)
+  const [hasPeculioCurrentMonth, setHasPeculioCurrentMonth] = useState(false)
 
   // Reset states when modal opens/closes or policial changes
   useEffect(() => {
@@ -668,6 +680,11 @@ export function PolicialViewModal({
                   policial={policial}
                   isEditingPeculio={isEditingPeculio}
                   setIsEditingPeculio={setIsEditingPeculio}
+                  onPeculioCheck={setHasPeculioCurrentMonth}
+                  onSuccess={() => {
+                    onClose()
+                    router.push("/dashboard")
+                  }}
                 />
               </TabsContent>
 
@@ -727,10 +744,21 @@ export function PolicialViewModal({
 
           {!isEditingPeculio && activeTab === "peculio" && (
             <Button
-              className="bg-[#ffffff] border-2 border-slate-200 text-slate-700 hover:bg-slate-100"
+              className={hasPeculioCurrentMonth 
+                ? "bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-100" 
+                : "bg-[#97836a] text-white hover:opacity-90"
+              }
               onClick={() => setIsEditingPeculio(true)}
             >
-              <Activity className="mr-2 h-4 w-4" /> Editar Prontidão
+              {hasPeculioCurrentMonth ? (
+                <>
+                  <Edit className="mr-2 h-4 w-4" /> Editar Prontidão
+                </>
+              ) : (
+                <>
+                  <PlusCircle className="mr-2 h-4 w-4" /> Vincular ao Pecúlio
+                </>
+              )}
             </Button>
           )}
         </div>

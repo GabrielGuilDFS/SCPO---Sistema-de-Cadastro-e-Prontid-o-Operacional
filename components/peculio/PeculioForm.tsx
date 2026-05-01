@@ -517,7 +517,9 @@ export function PeculioForm({ policiais, postos }: PeculioFormProps) {
                             >
                               {postos.map(posto => (
                                 <SelectItem key={posto.id} value={posto.id.toString()}>
-                                  {posto.nome} {posto.subunidade ? `(${posto.subunidade.nome})` : ''}
+                                  <span className="truncate whitespace-nowrap">
+                                    {posto.nome} {posto.subunidade ? `(${posto.subunidade.nome})` : ''}
+                                  </span>
                                 </SelectItem>
                               ))}
                             </SelectContent>

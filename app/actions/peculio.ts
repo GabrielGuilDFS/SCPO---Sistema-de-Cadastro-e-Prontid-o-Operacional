@@ -21,44 +21,29 @@ export async function cadastrarPeculio(data: CadastrarPeculioParams) {
     // Validar se o mês e ano formam uma data válida (primeiro dia do mês)
     const dataMesAno = new Date(data.ano, data.mes - 1, 1)
 
-    // Verificar duplicidade: o militar já tem registro para este mês/ano?
-    const existente = await prisma.peculio.findFirst({
+    const peculio = await prisma.peculio.upsert({
+      // @ts-ignore - Forçando reconhecimento do novo índice gerado via npx prisma generate
       where: {
+        policial_mes_ano: {
+          policialId: data.policialId,
+          dataMesAno: dataMesAno,
+        }
+      },
+      update: {
+        postoDeServicoId: data.postoDeServicoId,
+        disponibilidade: data.disponibilidade,
+        situacaoFuncional: data.situacaoFuncional,
+        condicaoOperacional: data.condicaoOperacional,
+      },
+      create: {
         policialId: data.policialId,
-        dataMesAno: dataMesAno,
-        ...(data.id ? { NOT: { id: data.id } } : {})
+        postoDeServicoId: data.postoDeServicoId,
+        disponibilidade: data.disponibilidade,
+        situacaoFuncional: data.situacaoFuncional,
+        condicaoOperacional: data.condicaoOperacional,
+        dataMesAno: dataMesAno
       }
     })
-
-    if (existente) {
-      return { 
-        error: "Este policial já possui um pecúlio registrado para este mês e ano.",
-        success: false
-      }
-    }
-
-    if (data.id) {
-      await prisma.peculio.update({
-        where: { id: data.id },
-        data: {
-          postoDeServicoId: data.postoDeServicoId,
-          disponibilidade: data.disponibilidade,
-          situacaoFuncional: data.situacaoFuncional,
-          condicaoOperacional: data.condicaoOperacional,
-        }
-      })
-    } else {
-      await prisma.peculio.create({
-        data: {
-          policialId: data.policialId,
-          postoDeServicoId: data.postoDeServicoId,
-          disponibilidade: data.disponibilidade,
-          situacaoFuncional: data.situacaoFuncional,
-          condicaoOperacional: data.condicaoOperacional,
-          dataMesAno: dataMesAno
-        }
-      })
-    }
 
     revalidatePath('/dashboard')
     revalidatePath('/dashboard/peculio')

@@ -141,10 +141,17 @@ export function PeculioFormIndividual({
                       </SelectValue>
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent position="popper" sideOffset={4}>
+                  <SelectContent 
+                    position="popper" 
+                    sideOffset={4} 
+                    align="start"
+                    className="w-[var(--radix-select-trigger-width)]"
+                  >
                     {postos.map(posto => (
                       <SelectItem key={posto.id} value={posto.id.toString()}>
-                        {posto.nome} {posto.subunidade ? `(${posto.subunidade.nome})` : ''}
+                        <span className="truncate whitespace-nowrap">
+                          {posto.nome} {posto.subunidade ? `(${posto.subunidade.nome})` : ''}
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>

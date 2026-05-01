@@ -266,5 +266,6 @@ model Peculio {
   policial            Policial          @relation(fields: [policialId], references: [id])
   postoDeServico      PostoDeServico    @relation(fields: [postoDeServicoId], references: [id])
 
+  @@unique([policialId, dataMesAno], name: "policial_mes_ano")
   @@map("peculio")
 }

@@ -9,7 +9,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ShieldCheck, UserX, Power, CheckCircle2, AlertCircle, Edit, Activity, History, Users, PlusCircle, Trash2 } from "lucide-react"
+import { ShieldCheck, UserX, Power, CheckCircle2, AlertCircle, Edit, Activity, History, Users, PlusCircle, Trash2, ArrowRightLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -22,6 +22,9 @@ import { getDependentesByPolicial, adicionarDependente, removerDependente, atual
 import { toast } from "sonner"
 import { PolicialForm } from "./PolicialForm"
 import { PeculioFormIndividual } from "@/components/peculio/PeculioFormIndividual"
+import { TransferenciaForm } from "@/components/transferencia/TransferenciaForm"
+import { HistoricoTransferencias } from "@/components/transferencia/HistoricoTransferencias"
+import { getHistoricoTransferencias, getSubunidadesOptions } from "@/app/actions/transferencia"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -353,6 +356,71 @@ function FamiliaTabContent({ policial }: { policial: any }) {
 }
 
 // ---------------------------------------------------------------------------
+// Componente Aba de Transferências
+// ---------------------------------------------------------------------------
+
+function TransferenciaTabContent({
+  policial,
+  isEditing,
+  setIsEditing,
+  onSuccess
+}: {
+  policial: any
+  isEditing: boolean
+  setIsEditing: (val: boolean) => void
+  onSuccess?: () => void
+}) {
+  const [loading, setLoading] = useState(true)
+  const [transferencias, setTransferencias] = useState<any[]>([])
+  const [subunidades, setSubunidades] = useState<any[]>([])
+
+  useEffect(() => {
+    async function load() {
+      if (!policial) return
+      setLoading(true)
+      const [historicoData, subunidadesData] = await Promise.all([
+        getHistoricoTransferencias(policial.id),
+        getSubunidadesOptions()
+      ])
+      setTransferencias(historicoData)
+      setSubunidades(subunidadesData)
+      setLoading(false)
+    }
+    load()
+  }, [policial])
+
+  if (loading) {
+    return <div className="py-10 text-center text-sm text-slate-500">Carregando histórico de transferências...</div>
+  }
+
+  if (isEditing) {
+    return (
+      <div className="space-y-4">
+        <TransferenciaForm
+          policialId={policial.id}
+          policialSubunidadeId={policial.subunidadeId}
+          subunidades={subunidades}
+          onSuccess={onSuccess}
+          onCancel={() => setIsEditing(false)}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h3 className="text-base font-semibold text-slate-800 mb-1">Histórico de Transferências</h3>
+        <p className="text-xs text-slate-500">
+          Movimentações entre subunidades registradas para este policial.
+        </p>
+      </div>
+      <HistoricoTransferencias transferencias={transferencias} />
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Componente principal
 // ---------------------------------------------------------------------------
 
@@ -372,12 +440,14 @@ export function PolicialViewModal({
   const [activeInnerTab, setActiveInnerTab] = useState("identificacao")
   const [isEditingPeculio, setIsEditingPeculio] = useState(false)
   const [hasPeculioCurrentMonth, setHasPeculioCurrentMonth] = useState(false)
+  const [isEditingTransferencia, setIsEditingTransferencia] = useState(false)
 
   // Reset states when modal opens/closes or policial changes
   useEffect(() => {
     if (!isOpen) {
       setIsEditing(false)
       setIsEditingPeculio(false)
+      setIsEditingTransferencia(false)
       setActiveTab("rh")
       setActiveInnerTab("identificacao")
     }
@@ -509,6 +579,12 @@ export function PolicialViewModal({
                     className="flex-1 rounded-full py-2 text-sm font-semibold transition-all duration-200 text-slate-500 hover:text-slate-700 data-[state=inactive]:bg-transparent data-[state=active]:bg-[#97836a] data-[state=active]:text-white data-[state=active]:shadow-sm"
                   >
                     Prontidão (Pecúlio)
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="transferencias"
+                    className="flex-1 rounded-full py-2 text-sm font-semibold transition-all duration-200 text-slate-500 hover:text-slate-700 data-[state=inactive]:bg-transparent data-[state=active]:bg-[#3c342a] data-[state=active]:text-white data-[state=active]:shadow-sm"
+                  >
+                    Transferências
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -693,6 +769,20 @@ export function PolicialViewModal({
                 <FamiliaTabContent policial={policial} />
               </TabsContent>
 
+              {/* ── Nível 2: Conteúdo Transferências ──────────────────────── */}
+              <TabsContent value="transferencias" className="m-0 p-6 focus:outline-none flex-1 overflow-y-auto">
+                <TransferenciaTabContent
+                  policial={policial}
+                  isEditing={isEditingTransferencia}
+                  setIsEditing={setIsEditingTransferencia}
+                  onSuccess={() => {
+                    setIsEditingTransferencia(false)
+                    onClose()
+                    router.push("/dashboard")
+                  }}
+                />
+              </TabsContent>
+
             </Tabs>
           )}
         </div>
@@ -702,11 +792,12 @@ export function PolicialViewModal({
             onClick={() => {
               if (isEditing) setIsEditing(false)
               else if (isEditingPeculio) setIsEditingPeculio(false)
+              else if (isEditingTransferencia) setIsEditingTransferencia(false)
               else onClose()
             }}
             className="text-slate-600"
           >
-            {isEditing || isEditingPeculio ? "Cancelar" : "Fechar"}
+            {isEditing || isEditingPeculio || isEditingTransferencia ? "Cancelar" : "Fechar"}
           </Button>
 
           {!isEditing && activeTab === "rh" && (
@@ -759,6 +850,15 @@ export function PolicialViewModal({
                   <PlusCircle className="mr-2 h-4 w-4" /> Vincular ao Pecúlio
                 </>
               )}
+            </Button>
+          )}
+
+          {!isEditingTransferencia && activeTab === "transferencias" && (
+            <Button
+              className="bg-[#97836a] text-white hover:opacity-90"
+              onClick={() => setIsEditingTransferencia(true)}
+            >
+              <ArrowRightLeft className="mr-2 h-4 w-4" /> Registrar Transferência
             </Button>
           )}
         </div>

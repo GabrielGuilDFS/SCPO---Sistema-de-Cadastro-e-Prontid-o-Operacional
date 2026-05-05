@@ -21,11 +21,10 @@ export function DashboardSidebar({
       <aside
         className={[
           "fixed inset-y-0 left-0 z-50 bg-[#2a2218] border-r border-white/10 transition-all duration-300 ease-in-out",
-          // Mobile visibility
-          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-          // Desktop width
-          isCollapsed ? "lg:w-16" : "lg:w-64",
-          "w-64", // Default mobile width
+          // Visibility is always true now
+          "translate-x-0",
+          // Width: w-16 on mobile. Desktop switches based on isCollapsed
+          isCollapsed ? "w-16" : "w-16 lg:w-64",
         ].join(" ")}
       >
         {/* ── Cabeçalho ─────────────────────────────────────────── */}
@@ -38,7 +37,7 @@ export function DashboardSidebar({
                 className="h-9 w-9 object-contain"
               />
             </div>
-            {(!isCollapsed || isOpen) && (
+            {!isCollapsed && (
               <div className="overflow-hidden hidden lg:block">
                 <p className="text-white font-bold text-base leading-tight truncate">
                   SCPO
@@ -48,15 +47,6 @@ export function DashboardSidebar({
                 </p>
               </div>
             )}
-            {/* Texto visível no mobile sempre que aberto */}
-            <div className="overflow-hidden lg:hidden">
-              <p className="text-white font-bold text-base leading-tight truncate">
-                SCPO
-              </p>
-              <p className="text-[#97836a] text-[10px] font-medium uppercase tracking-wider leading-tight truncate">
-                20º BPM
-              </p>
-            </div>
           </div>
 
           <button

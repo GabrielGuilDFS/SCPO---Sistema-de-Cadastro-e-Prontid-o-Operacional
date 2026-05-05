@@ -85,7 +85,7 @@ const NAV_GROUPS: NavGroup[] = [
       {
         title: "Transferências",
         icon: ArrowRightLeft,
-        url: "#",
+        url: "/dashboard/transferencias",
         allowedProfiles: ["ADMINISTRADOR"],
       },
     ],
@@ -142,14 +142,14 @@ export function SidebarContent({
                 {/* Label do grupo: Esconde no desktop se colapsado, sempre visível no mobile */}
                 <p className={cn(
                   "px-4 mb-1 text-[10px] font-bold uppercase tracking-widest text-[#97836a]/70 transition-all duration-300 truncate whitespace-nowrap overflow-hidden",
-                  collapsed ? "lg:hidden" : "block"
+                  collapsed ? "hidden" : "hidden lg:block"
                 )}>
                   {group.label}
                 </p>
                 {/* Divisor: Aparece no desktop apenas se colapsado, nunca no mobile */}
                 <div className={cn(
-                  "h-px bg-white/10 mx-3 mb-2 hidden",
-                  collapsed ? "lg:block" : "hidden"
+                  "h-px bg-white/10 mx-3 mb-2",
+                  collapsed ? "block" : "block lg:hidden"
                 )} />
 
                 <ul className="space-y-0.5 px-2 w-full max-w-full">
@@ -166,14 +166,14 @@ export function SidebarContent({
                           active
                             ? "bg-[#342a1e] text-white shadow-sm"
                             : "text-slate-300 hover:bg-white/[0.08] hover:text-white",
-                          collapsed ? "lg:justify-center lg:px-0" : "justify-start"
+                          collapsed ? "justify-center px-0" : "justify-center px-0 lg:justify-start lg:px-2"
                         )}
                       >
                         {/* Indicador ativo */}
                         {active && (
                           <span className={cn(
                             "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-[#97836a] rounded-r-full transition-all duration-300",
-                            collapsed ? "lg:hidden" : "block"
+                            collapsed ? "hidden" : "hidden lg:block"
                           )} />
                         )}
                         <Icon
@@ -185,7 +185,7 @@ export function SidebarContent({
                         {/* Texto do item: Esconde no desktop se colapsado, sempre visível no mobile */}
                         <span className={cn(
                           "truncate transition-all duration-300 flex-1 min-w-0",
-                          collapsed ? "lg:hidden" : "block"
+                          collapsed ? "hidden" : "hidden lg:block"
                         )}>
                           {item.title}
                         </span>
@@ -197,8 +197,8 @@ export function SidebarContent({
                       <li key={item.url} className="w-full max-w-full">
                         {collapsed ? (
                           <>
-                            {/* Tooltip apenas para Desktop Lg+ */}
-                            <div className="hidden lg:block w-full">
+                            {/* Tooltip para todos os tamanhos quando colapsado ou no mobile */}
+                            <div className="w-full">
                               <Tooltip>
                                 <TooltipTrigger render={linkEl} />
                                 <TooltipContent
@@ -209,10 +209,7 @@ export function SidebarContent({
                                 </TooltipContent>
                               </Tooltip>
                             </div>
-                            {/* No mobile ou resoluções menores, renderiza o link puro (sempre expandido) */}
-                            <div className="lg:hidden w-full">
-                              {linkEl}
-                            </div>
+                            {/* Removed redundant div */}
                           </>
                         ) : (
                           linkEl
@@ -235,7 +232,7 @@ export function SidebarContent({
             onClick={onLinkClick}
             className={cn(
               "flex items-center gap-3 transition-all duration-300 w-full overflow-hidden p-1 rounded-lg hover:bg-white/5 group/profile",
-              collapsed ? "lg:justify-center" : "justify-start"
+              collapsed ? "justify-center" : "justify-center lg:justify-start"
             )}
           >
             <div className="h-8 w-8 rounded-full bg-[#97836a]/30 flex items-center justify-center shrink-0 border border-[#97836a]/20 group-hover/profile:border-[#cca471]/50 transition-colors">
@@ -244,7 +241,7 @@ export function SidebarContent({
 
             <div className={cn(
               "flex-col overflow-hidden flex-1 min-w-0",
-              collapsed ? "lg:hidden" : "flex"
+              collapsed ? "hidden" : "hidden lg:flex"
             )}>
               <p className="text-white text-xs font-semibold truncate leading-tight w-full group-hover/profile:text-[#cca471] transition-colors">
                 {nomeUsuario || "Usuário"}
@@ -262,14 +259,14 @@ export function SidebarContent({
                 "flex items-center transition-all duration-300 w-full overflow-hidden outline-none border-none group",
                 "text-rose-400 hover:bg-rose-500/10 hover:text-rose-300",
                 collapsed
-                  ? "lg:w-10 lg:h-10 lg:mx-auto lg:justify-center lg:rounded-full"
-                  : "gap-3 rounded-lg px-2 py-2 text-[11px] font-bold uppercase justify-start"
+                  ? "w-10 h-10 mx-auto justify-center rounded-full"
+                  : "w-10 h-10 mx-auto justify-center rounded-full lg:w-full lg:h-auto lg:mx-0 lg:justify-start lg:rounded-lg lg:gap-3 lg:px-2 lg:py-2 lg:text-[11px]"
               )}
             >
               <LogOut className="h-4 w-4 shrink-0" />
               <span className={cn(
                 "truncate flex-1 min-w-0 text-left",
-                collapsed ? "lg:hidden" : "block"
+                collapsed ? "hidden" : "hidden lg:block"
               )}>
                 Sair do Sistema
               </span>

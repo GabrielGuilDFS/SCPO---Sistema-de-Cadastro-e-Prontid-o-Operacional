@@ -21,35 +21,35 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { Loader2, ArrowRightLeft } from "lucide-react"
-import { registrarTransferenciasEmLote } from "@/app/actions/transferencia"
+import { Loader2, ArrowRightLeft, Save } from "lucide-react"
+import { registrarTransferenciasEmLote, updateTransferenciaIndividual } from "@/app/actions/transferencia"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 // ---------------------------------------------------------------------------
-// Schema Zod
+// Schema Zod — campos de BGO/Data são opcionais (validados apenas na criação)
 // ---------------------------------------------------------------------------
 
 const formSchema = z.object({
   subunidadeDestinoId: z.number({ message: "Selecione a subunidade de destino" }),
   tipoTransferencia: z.enum(["INTERNA", "EXTERNA"], { message: "Selecione o tipo" }),
-  numeroBGO: z.string().min(1, "O número do BGO é obrigatório"),
-  dataTransferencia: z.string().min(1, "A data é obrigatória"),
+  numeroBGO: z.string().optional(),
+  dataTransferencia: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof formSchema>
 
 // ---------------------------------------------------------------------------
-// Labels
-// ---------------------------------------------------------------------------
-
-const TIPO_LABELS: Record<string, string> = {
-  INTERNA: "Interna",
-  EXTERNA: "Externa",
-}
-
-// ---------------------------------------------------------------------------
 // Componente
 // ---------------------------------------------------------------------------
+
+interface TransferenciaInitialData {
+  id: number
+  subunidadeDestinoId: number
+  tipoTransferencia: "INTERNA" | "EXTERNA"
+  numeroBGO?: string
+  dataTransferencia?: string | Date
+}
 
 interface TransferenciaFormProps {
   policialId: number
@@ -57,6 +57,9 @@ interface TransferenciaFormProps {
   subunidades: { id: number; nome: string; sigla: string }[]
   onSuccess?: () => void
   onCancel?: () => void
+  /** Dados iniciais para modo de edição */
+  initialData?: TransferenciaInitialData
+  hideBGOFields?: boolean
 }
 
 export function TransferenciaForm({
@@ -65,14 +68,18 @@ export function TransferenciaForm({
   subunidades,
   onSuccess,
   onCancel,
+  initialData,
+  hideBGOFields,
 }: TransferenciaFormProps) {
   const [loading, setLoading] = useState(false)
+  const isEditMode = !!initialData
+  const router = useRouter()
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      subunidadeDestinoId: undefined,
-      tipoTransferencia: undefined,
+      subunidadeDestinoId: initialData?.subunidadeDestinoId ?? undefined,
+      tipoTransferencia: initialData?.tipoTransferencia ?? undefined,
       numeroBGO: "",
       dataTransferencia: "",
     },
@@ -81,30 +88,65 @@ export function TransferenciaForm({
   async function onSubmit(data: FormValues) {
     setLoading(true)
     try {
-      const result = await registrarTransferenciasEmLote({
-        numeroBGO: data.numeroBGO,
-        dataTransferencia: data.dataTransferencia,
-        transferencias: [
-          {
-            policialId,
-            subunidadeDestinoId: data.subunidadeDestinoId,
-            tipoTransferencia: data.tipoTransferencia as any,
-          }
-        ]
-      })
+      if (isEditMode) {
+        // Modo edição: atualizar transferência existente
+        const result = await updateTransferenciaIndividual(
+          initialData.id,
+          data.subunidadeDestinoId,
+          data.tipoTransferencia as "INTERNA" | "EXTERNA"
+        )
 
-      if (result.success) {
-        toast.success("Transferência Registrada", {
-          description: result.message,
-        })
-        if (onSuccess) onSuccess()
+        if (result.success) {
+          toast.success("Transferência Atualizada", {
+            description: result.message,
+          })
+          if (onSuccess) onSuccess()
+          else setTimeout(() => router.push("/dashboard/transferencias"), 1500)
+        } else {
+          toast.error("Erro na Atualização", {
+            description: result.error,
+          })
+        }
       } else {
-        toast.error("Erro na Transferência", {
-          description: result.error,
+        // Validação client-side para campos obrigatórios em modo criação
+        if (!data.numeroBGO || data.numeroBGO.trim() === "") {
+          form.setError("numeroBGO", { message: "O número do BGO é obrigatório" })
+          setLoading(false)
+          return
+        }
+        if (!data.dataTransferencia || data.dataTransferencia.trim() === "") {
+          form.setError("dataTransferencia", { message: "A data é obrigatória" })
+          setLoading(false)
+          return
+        }
+
+        // Modo criação: registrar nova transferência
+        const result = await registrarTransferenciasEmLote({
+          numeroBGO: data.numeroBGO,
+          dataTransferencia: data.dataTransferencia,
+          transferencias: [
+            {
+              policialId,
+              subunidadeDestinoId: data.subunidadeDestinoId,
+              tipoTransferencia: data.tipoTransferencia as any,
+            }
+          ]
         })
+
+        if (result.success) {
+          toast.success("Transferência Registrada", {
+            description: result.message,
+          })
+          if (onSuccess) onSuccess()
+          else setTimeout(() => router.push("/dashboard/transferencias"), 1500)
+        } else {
+          toast.error("Erro na Transferência", {
+            description: result.error,
+          })
+        }
       }
     } catch (error) {
-      toast.error("Erro inesperado ao registrar transferência.")
+      toast.error("Erro inesperado ao processar transferência.")
     } finally {
       setLoading(false)
     }
@@ -117,14 +159,20 @@ export function TransferenciaForm({
     <div className="space-y-6">
       <div className="flex items-center gap-3 pb-4 border-b border-slate-200">
         <div className="h-10 w-10 rounded-full bg-[#97836a]/10 flex items-center justify-center">
-          <ArrowRightLeft className="h-5 w-5 text-[#97836a]" />
+          {isEditMode
+            ? <Save className="h-5 w-5 text-[#97836a]" />
+            : <ArrowRightLeft className="h-5 w-5 text-[#97836a]" />
+          }
         </div>
         <div>
           <h3 className="text-base font-semibold text-slate-800">
-            Registrar Nova Transferência
+            {isEditMode ? "Editar Transferência" : "Registrar Nova Transferência"}
           </h3>
           <p className="text-xs text-slate-500">
-            Preencha os dados abaixo para registrar a movimentação do policial.
+            {isEditMode
+              ? "Altere o destino ou tipo da transferência selecionada."
+              : "Preencha os dados abaixo para registrar a movimentação do policial."
+            }
           </p>
         </div>
       </div>
@@ -204,50 +252,82 @@ export function TransferenciaForm({
               )}
             />
 
-            {/* Data da Transferência */}
-            <FormField
-              control={form.control}
-              name="dataTransferencia"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Data da Transferência</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="date"
-                      className="h-10"
-                      max={new Date().toISOString().split("T")[0]}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Campos de BGO/Data */}
+            {(!isEditMode && !hideBGOFields) ? (
+              <>
+                {/* Data da Transferência */}
+                <FormField
+                  control={form.control}
+                  name="dataTransferencia"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Data da Transferência</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          className="h-10"
+                          max={new Date().toISOString().split("T")[0]}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            {/* Número do BGO */}
-            <FormField
-              control={form.control}
-              name="numeroBGO"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Número do BGO</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Ex: BGO Nº 042/2026"
-                      className="h-10"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                {/* Número do BGO */}
+                <FormField
+                  control={form.control}
+                  name="numeroBGO"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Número do BGO</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ex: BGO Nº 042/2026"
+                          className="h-10"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            ) : isEditMode && (
+              <>
+                {/* Contexto - Data da Transferência (Read-only) */}
+                <div className="space-y-2">
+                  <FormLabel className="text-slate-500">Data da Transferência</FormLabel>
+                  <Input
+                    type="date"
+                    className="h-10 bg-slate-50 text-slate-500 cursor-not-allowed"
+                    disabled
+                    value={initialData?.dataTransferencia ? new Date(initialData.dataTransferencia).toISOString().split("T")[0] : ""}
+                  />
+                </div>
+
+                {/* Contexto - Número do BGO (Read-only) */}
+                <div className="space-y-2">
+                  <FormLabel className="text-slate-500">Número do BGO</FormLabel>
+                  <Input
+                    className="h-10 bg-slate-50 text-slate-500 cursor-not-allowed"
+                    disabled
+                    value={initialData?.numeroBGO || ""}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           {/* Ações */}
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-            {onCancel && (
+            {onCancel ? (
               <Button type="button" variant="outline" onClick={onCancel}>
+                Cancelar
+              </Button>
+            ) : (
+              <Button type="button" variant="outline" onClick={() => router.push("/dashboard/transferencias")}>
                 Cancelar
               </Button>
             )}
@@ -260,12 +340,14 @@ export function TransferenciaForm({
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Registrando...
+                  {isEditMode ? "Salvando..." : "Registrando..."}
                 </>
               ) : (
                 <>
-                  <ArrowRightLeft className="h-4 w-4 mr-2" />
-                  Confirmar Transferência
+                  {isEditMode
+                    ? <><Save className="h-4 w-4 mr-2" /> Salvar Alterações</>
+                    : <><ArrowRightLeft className="h-4 w-4 mr-2" /> Confirmar Transferência</>
+                  }
                 </>
               )}
             </Button>

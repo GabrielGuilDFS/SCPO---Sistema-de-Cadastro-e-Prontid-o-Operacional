@@ -1,7 +1,9 @@
 "use client"
 
-import { ArrowRight, ArrowRightLeft, FileText } from "lucide-react"
+import { ArrowRight, ArrowRightLeft, FileText, Edit } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation"
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -45,6 +47,8 @@ const TIPO_COLORS: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 export function HistoricoTransferencias({ transferencias }: HistoricoTransferenciasProps) {
+  const router = useRouter()
+
   if (!transferencias || transferencias.length === 0) {
     return (
       <div className="rounded-xl bg-slate-50 border-2 border-dashed border-slate-200 p-10 text-center">
@@ -109,25 +113,36 @@ export function HistoricoTransferencias({ transferencias }: HistoricoTransferenc
                   </span>
                 </div>
 
-                {/* Metadados */}
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="text-xs text-slate-500">
-                    {formatDate(t.dataTransferencia)}
-                  </span>
+                {/* Metadados e Ações */}
+                <div className="flex items-center justify-between flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="text-xs text-slate-500">
+                      {formatDate(t.dataTransferencia)}
+                    </span>
 
-                  <Badge
-                    variant="outline"
-                    className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 ${
-                      TIPO_COLORS[t.tipoTransferencia] || "bg-slate-50 text-slate-600"
-                    }`}
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 ${
+                        TIPO_COLORS[t.tipoTransferencia] || "bg-slate-50 text-slate-600"
+                      }`}
+                    >
+                      {TIPO_LABELS[t.tipoTransferencia] || t.tipoTransferencia}
+                    </Badge>
+
+                    <span className="flex items-center gap-1 text-xs text-slate-500">
+                      <FileText className="h-3 w-3" />
+                      BGO: {t.numeroBGO}
+                    </span>
+                  </div>
+
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 text-xs text-[#97836a] hover:bg-[#97836a]/10" 
+                    onClick={() => router.push(`/dashboard/transferencias/registro?id=${t.id}`)}
                   >
-                    {TIPO_LABELS[t.tipoTransferencia] || t.tipoTransferencia}
-                  </Badge>
-
-                  <span className="flex items-center gap-1 text-xs text-slate-500">
-                    <FileText className="h-3 w-3" />
-                    BGO: {t.numeroBGO}
-                  </span>
+                    <Edit className="h-3 w-3 mr-1" /> Editar
+                  </Button>
                 </div>
               </div>
             </div>

@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select"
 import { cadastrarPeculio } from "@/app/actions/peculio"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 const formSchema = z.object({
   policialId: z.number({ message: "Selecione um policial" }),
@@ -60,6 +61,7 @@ export function PeculioFormIndividual({
   onSuccess
 }: PeculioFormIndividualProps) {
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
   const currentYear = new Date().getFullYear()
   const currentMonth = new Date().getMonth() + 1
@@ -91,9 +93,10 @@ export function PeculioFormIndividual({
       }
 
       toast.success(initialData ? "Prontidão atualizada com sucesso!" : "Pecúlio registrado com sucesso!")
-      
       if (onSuccess) {
         onSuccess()
+      } else {
+        setTimeout(() => router.push("/dashboard"), 1500)
       }
     } catch (error) {
       console.log("Ação finalizada ou redirecionamento capturado.", error)
@@ -297,11 +300,20 @@ export function PeculioFormIndividual({
         </div>
 
         <div className="flex justify-end pt-4 gap-2">
-          {onSuccess && (
+          {onSuccess ? (
             <Button
               type="button"
               variant="outline"
               onClick={onSuccess}
+              className="w-full md:w-auto px-8"
+            >
+              Cancelar
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push("/dashboard")}
               className="w-full md:w-auto px-8"
             >
               Cancelar

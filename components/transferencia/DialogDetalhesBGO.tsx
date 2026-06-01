@@ -1,16 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Search, Loader2, Trash2, Edit } from "lucide-react"
-import { getTransferenciasPorBGO, deletarTransferencia, updateTransferenciaIndividual, getSubunidadesOptions } from "@/app/actions/transferencia"
+import { getTransferenciasPorBGO, deletarTransferencia, getSubunidadesOptions } from "@/app/actions/transferencia"
 import { toast } from "sonner"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRouter } from "next/navigation"
+import { TransferenciaForm } from "./TransferenciaForm"
 
 interface DialogDetalhesBGOProps {
   numeroBGO: string | null
@@ -46,12 +45,9 @@ export function DialogDetalhesBGO({ numeroBGO, onClose, onUpdate }: DialogDetalh
   const [reverterLotacao, setReverterLotacao] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  // Estado para edição
+  // Estado para edição — agora usa o TransferenciaForm
   const [editData, setEditData] = useState<any | null>(null)
-  const [isEditing, setIsEditing] = useState(false)
-  const [editDestinoId, setEditDestinoId] = useState<string>("")
-  const [editTipo, setEditTipo] = useState<"INTERNA" | "EXTERNA">("INTERNA")
-  const [subunidades, setSubunidades] = useState<{ id: number, sigla: string }[]>([])
+  const [subunidades, setSubunidades] = useState<{ id: number; nome: string; sigla: string }[]>([])
 
   useEffect(() => {
     getSubunidadesOptions().then(setSubunidades)
@@ -91,33 +87,6 @@ export function DialogDetalhesBGO({ numeroBGO, onClose, onUpdate }: DialogDetalh
     } finally {
       setIsDeleting(false)
       setDeleteId(null)
-    }
-  }
-
-  const handleOpenEdit = (t: any) => {
-    setEditData(t)
-    setEditDestinoId(t.subunidadeDestinoId?.toString() || "")
-    setEditTipo(t.tipoTransferencia)
-  }
-
-  const handleSaveEdit = async () => {
-    if (!editData || !editDestinoId) return
-    setIsEditing(true)
-    try {
-      const res = await updateTransferenciaIndividual(editData.id, parseInt(editDestinoId), editTipo)
-      if (res.success) {
-        toast.success(res.message)
-        setEditData(null)
-        await carregarTransferencias()
-        onUpdate?.()
-        router.refresh()
-      } else {
-        toast.error(res.error)
-      }
-    } catch (error) {
-      toast.error("Erro ao atualizar transferência.")
-    } finally {
-      setIsEditing(false)
     }
   }
 
@@ -206,7 +175,7 @@ export function DialogDetalhesBGO({ numeroBGO, onClose, onUpdate }: DialogDetalh
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-slate-400 hover:text-slate-600"
-                              onClick={() => handleOpenEdit(t)}
+                              onClick={() => setEditData(t)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -270,69 +239,33 @@ export function DialogDetalhesBGO({ numeroBGO, onClose, onUpdate }: DialogDetalh
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Modal de Edição Individual */}
+      {/* Modal de Edição — Reutiliza TransferenciaForm */}
       <Dialog open={!!editData} onOpenChange={(open) => !open && setEditData(null)}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="text-[#3c342a]">Editar Transferência</DialogTitle>
+            <DialogTitle className="text-[#3c342a]">
+              {editData && `${GRAU_SIGLA[editData.policial.grauHierarquico ?? ""]} ${editData.policial.nomeGuerra || editData.policial.nomeCompleto} (${editData.policial.matricula})`}
+            </DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label className="text-slate-500 text-xs">Policial</Label>
-              <div className="font-medium text-sm bg-slate-50 p-2 rounded border border-slate-100">
-                {editData && `${GRAU_SIGLA[editData.policial.grauHierarquico ?? ""]} ${editData.policial.nomeGuerra || editData.policial.nomeCompleto} (${editData.policial.matricula})`}
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <Label>Subunidade de Destino</Label>
-              <Select value={editDestinoId} onValueChange={(val) => { if (val) setEditDestinoId(val as string) }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o destino">
-                    {editDestinoId
-                      ? subunidades.find(s => s.id.toString() === editDestinoId)?.sigla
-                      : "Selecione o destino"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {subunidades.map(sub => (
-                    <SelectItem key={sub.id} value={sub.id.toString()}>
-                      {sub.sigla}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid gap-2">
-              <Label>Tipo de Transferência</Label>
-              <Select value={editTipo} onValueChange={(val) => { if (val) setEditTipo(val as "INTERNA" | "EXTERNA") }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo">
-                    {editTipo === "INTERNA" ? "Interna" : "Externa"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="INTERNA">Interna</SelectItem>
-                  <SelectItem value="EXTERNA">Externa</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditData(null)} disabled={isEditing}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSaveEdit}
-              disabled={isEditing}
-              style={{ backgroundColor: "#97836a", color: "#fff" }}
-              className="hover:opacity-90"
-            >
-              {isEditing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              {isEditing ? "Salvando..." : "Salvar Alterações"}
-            </Button>
-          </DialogFooter>
+          {editData && (
+            <TransferenciaForm
+              policialId={editData.policialId}
+              policialSubunidadeId={null}
+              subunidades={subunidades}
+              initialData={{
+                id: editData.id,
+                subunidadeDestinoId: editData.subunidadeDestinoId ?? editData.subunidadeDestino?.id,
+                tipoTransferencia: editData.tipoTransferencia,
+              }}
+              onSuccess={async () => {
+                setEditData(null)
+                await carregarTransferencias()
+                onUpdate?.()
+                router.refresh()
+              }}
+              onCancel={() => setEditData(null)}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </>

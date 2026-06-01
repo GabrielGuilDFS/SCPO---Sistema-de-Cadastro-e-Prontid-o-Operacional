@@ -11,18 +11,15 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ShieldCheck, UserX, Power, CheckCircle2, AlertCircle, Edit, Activity, History, Users, PlusCircle, Trash2, ArrowRightLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { GrauParentesco } from "@prisma/client"
+
 import { desativarPolicial, ativarPolicial } from "@/app/cadastro/policial/actions"
 import { getHistoricoPeculio, getPostosOptions } from "@/app/actions/peculio"
 import { getDependentesByPolicial, adicionarDependente, removerDependente, atualizarDependente } from "@/app/dashboard/dependentes/actions"
 import { toast } from "sonner"
-import { PolicialForm } from "./PolicialForm"
-import { PeculioFormIndividual } from "@/components/peculio/PeculioFormIndividual"
-import { TransferenciaForm } from "@/components/transferencia/TransferenciaForm"
+
 import { HistoricoTransferencias } from "@/components/transferencia/HistoricoTransferencias"
 import { getHistoricoTransferencias, getSubunidadesOptions } from "@/app/actions/transferencia"
 import {
@@ -44,8 +41,6 @@ interface PolicialViewModalProps {
   isOpen: boolean
   onClose: () => void
   policial: any | null
-  subunidades?: { id: number; nome: string }[]
-  funcoes?: { id: number; funcao: string }[]
   sessionMatricula?: string
 }
 
@@ -136,20 +131,13 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
 
 function PeculioTabContent({
   policial,
-  isEditingPeculio,
-  setIsEditingPeculio,
-  onPeculioCheck,
-  onSuccess
+  onPeculioCheck
 }: {
   policial: any,
-  isEditingPeculio: boolean,
-  setIsEditingPeculio: (val: boolean) => void,
-  onPeculioCheck?: (exists: boolean) => void,
-  onSuccess?: () => void
+  onPeculioCheck?: (peculioId: number | null) => void
 }) {
   const [loading, setLoading] = useState(true)
   const [peculioData, setPeculioData] = useState<any>(null)
-  const [postos, setPostos] = useState<any[]>([])
 
   useEffect(() => {
     async function load() {
@@ -157,13 +145,9 @@ function PeculioTabContent({
       setLoading(true)
       const mesAtual = new Date().getMonth() + 1
       const anoAtual = new Date().getFullYear()
-      const [data, postosOptions] = await Promise.all([
-        getHistoricoPeculio(policial.id, mesAtual, anoAtual),
-        getPostosOptions()
-      ])
+      const data = await getHistoricoPeculio(policial.id, mesAtual, anoAtual)
       setPeculioData(data)
-      setPostos(postosOptions)
-      if (onPeculioCheck) onPeculioCheck(!!data?.peculioAtual)
+      if (onPeculioCheck) onPeculioCheck(data?.peculioAtual?.id || null)
       setLoading(false)
     }
     load()
@@ -174,41 +158,6 @@ function PeculioTabContent({
   }
 
   const { peculioAtual, historico } = peculioData || {}
-
-  if (isEditingPeculio) {
-    const policialFormatado = {
-      id: policial.id,
-      nomeGuerra: policial.nomeGuerra,
-      nomeCompleto: policial.nomeCompleto,
-      matricula: policial.matricula,
-      grauHierarquico: policial.grauHierarquico,
-      subunidade: policial.subunidade ? { nome: policial.subunidade.nome } : null
-    }
-
-    return (
-      <div className="space-y-6 animate-in fade-in duration-300">
-        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-          <h3 className="text-base font-semibold text-slate-800 flex items-center gap-2">
-            <Activity className="h-5 w-5 text-[#97836a]" />
-            Gerenciar Prontidão do Mês
-          </h3>
-        </div>
-        <div className="-mx-6 px-6">
-          <PeculioFormIndividual
-            postos={postos}
-            fixedPolicialId={policial.id}
-            initialData={peculioAtual}
-            onSuccess={() => {
-              setIsEditingPeculio(false)
-              if (onPeculioCheck) onPeculioCheck(true)
-              if (onSuccess) onSuccess()
-            }}
-          />
-        </div>
-      </div>
-    )
-  }
-
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -360,30 +309,19 @@ function FamiliaTabContent({ policial }: { policial: any }) {
 // ---------------------------------------------------------------------------
 
 function TransferenciaTabContent({
-  policial,
-  isEditing,
-  setIsEditing,
-  onSuccess
+  policial
 }: {
   policial: any
-  isEditing: boolean
-  setIsEditing: (val: boolean) => void
-  onSuccess?: () => void
 }) {
   const [loading, setLoading] = useState(true)
   const [transferencias, setTransferencias] = useState<any[]>([])
-  const [subunidades, setSubunidades] = useState<any[]>([])
 
   useEffect(() => {
     async function load() {
       if (!policial) return
       setLoading(true)
-      const [historicoData, subunidadesData] = await Promise.all([
-        getHistoricoTransferencias(policial.id),
-        getSubunidadesOptions()
-      ])
+      const historicoData = await getHistoricoTransferencias(policial.id)
       setTransferencias(historicoData)
-      setSubunidades(subunidadesData)
       setLoading(false)
     }
     load()
@@ -391,20 +329,6 @@ function TransferenciaTabContent({
 
   if (loading) {
     return <div className="py-10 text-center text-sm text-slate-500">Carregando histórico de transferências...</div>
-  }
-
-  if (isEditing) {
-    return (
-      <div className="space-y-4">
-        <TransferenciaForm
-          policialId={policial.id}
-          policialSubunidadeId={policial.subunidadeId}
-          subunidades={subunidades}
-          onSuccess={onSuccess}
-          onCancel={() => setIsEditing(false)}
-        />
-      </div>
-    )
   }
 
   return (
@@ -428,37 +352,22 @@ export function PolicialViewModal({
   isOpen,
   onClose,
   policial,
-  subunidades = [],
-  funcoes = [],
   sessionMatricula
 }: PolicialViewModalProps) {
   const router = useRouter()
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState("rh")
   const [activeInnerTab, setActiveInnerTab] = useState("identificacao")
-  const [isEditingPeculio, setIsEditingPeculio] = useState(false)
-  const [hasPeculioCurrentMonth, setHasPeculioCurrentMonth] = useState(false)
-  const [isEditingTransferencia, setIsEditingTransferencia] = useState(false)
+  const [currentPeculioId, setCurrentPeculioId] = useState<number | null>(null)
 
   // Reset states when modal opens/closes or policial changes
   useEffect(() => {
     if (!isOpen) {
-      setIsEditing(false)
-      setIsEditingPeculio(false)
-      setIsEditingTransferencia(false)
       setActiveTab("rh")
       setActiveInnerTab("identificacao")
     }
   }, [isOpen, policial])
-
-  // Reset isEditingPeculio when tab changes
-  useEffect(() => {
-    if (activeTab === "rh") {
-      setIsEditingPeculio(false)
-    }
-  }, [activeTab])
 
   if (!policial) return null
 
@@ -551,19 +460,7 @@ export function PolicialViewModal({
 
         {/* ── Corpo com Abas ────────────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto bg-white">
-          {isEditing ? (
-            <div className="p-0">
-              <PolicialForm
-                initialData={policial}
-                subunidades={subunidades}
-                funcoes={funcoes}
-                onSuccess={() => {
-                  setIsEditing(false)
-                  onClose()
-                }}
-              />
-            </div>
-          ) : (
+          {(
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col h-full">
               {/* ── Nível 1: Abas Mestras ──────────────────────────────────── */}
               <div className="bg-white border-b border-slate-200 px-6 py-4 shrink-0 flex justify-center">
@@ -754,13 +651,7 @@ export function PolicialViewModal({
               <TabsContent value="peculio" className="m-0 p-6 focus:outline-none flex-1 overflow-y-auto">
                 <PeculioTabContent
                   policial={policial}
-                  isEditingPeculio={isEditingPeculio}
-                  setIsEditingPeculio={setIsEditingPeculio}
-                  onPeculioCheck={setHasPeculioCurrentMonth}
-                  onSuccess={() => {
-                    onClose()
-                    router.push("/dashboard")
-                  }}
+                  onPeculioCheck={setCurrentPeculioId}
                 />
               </TabsContent>
 
@@ -769,17 +660,9 @@ export function PolicialViewModal({
                 <FamiliaTabContent policial={policial} />
               </TabsContent>
 
-              {/* ── Nível 2: Conteúdo Transferências ──────────────────────── */}
               <TabsContent value="transferencias" className="m-0 p-6 focus:outline-none flex-1 overflow-y-auto">
                 <TransferenciaTabContent
                   policial={policial}
-                  isEditing={isEditingTransferencia}
-                  setIsEditing={setIsEditingTransferencia}
-                  onSuccess={() => {
-                    setIsEditingTransferencia(false)
-                    onClose()
-                    router.push("/dashboard")
-                  }}
                 />
               </TabsContent>
 
@@ -789,23 +672,21 @@ export function PolicialViewModal({
         <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
           <Button
             variant="outline"
-            onClick={() => {
-              if (isEditing) setIsEditing(false)
-              else if (isEditingPeculio) setIsEditingPeculio(false)
-              else if (isEditingTransferencia) setIsEditingTransferencia(false)
-              else onClose()
-            }}
+            onClick={() => onClose()}
             className="text-slate-600"
           >
-            {isEditing || isEditingPeculio || isEditingTransferencia ? "Cancelar" : "Fechar"}
+            Fechar
           </Button>
 
-          {!isEditing && activeTab === "rh" && (
+          {activeTab === "rh" && (
             <>
               <Button
                 variant="outline"
                 className="border-slate-300 text-slate-700 hover:bg-slate-100"
-                onClick={() => setIsEditing(true)}
+                onClick={() => {
+                  onClose()
+                  router.push(`/dashboard/cadastro-policial?id=${policial.id}`)
+                }}
               >
                 <Edit className="mr-2 h-4 w-4" /> Editar Perfil
               </Button>
@@ -833,15 +714,18 @@ export function PolicialViewModal({
             </>
           )}
 
-          {!isEditingPeculio && activeTab === "peculio" && (
+          {activeTab === "peculio" && (
             <Button
-              className={hasPeculioCurrentMonth 
+              className={currentPeculioId 
                 ? "bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-100" 
                 : "bg-[#97836a] text-white hover:opacity-90"
               }
-              onClick={() => setIsEditingPeculio(true)}
+              onClick={() => {
+                onClose()
+                router.push(currentPeculioId ? `/dashboard/peculio/registro?id=${currentPeculioId}` : `/dashboard/peculio/registro?policialId=${policial.id}`)
+              }}
             >
-              {hasPeculioCurrentMonth ? (
+              {currentPeculioId ? (
                 <>
                   <Edit className="mr-2 h-4 w-4" /> Editar Prontidão
                 </>
@@ -853,10 +737,13 @@ export function PolicialViewModal({
             </Button>
           )}
 
-          {!isEditingTransferencia && activeTab === "transferencias" && (
+          {activeTab === "transferencias" && (
             <Button
               className="bg-[#97836a] text-white hover:opacity-90"
-              onClick={() => setIsEditingTransferencia(true)}
+              onClick={() => {
+                onClose()
+                router.push(`/dashboard/transferencias/registro?policialId=${policial.id}`)
+              }}
             >
               <ArrowRightLeft className="mr-2 h-4 w-4" /> Registrar Transferência
             </Button>

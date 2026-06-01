@@ -212,8 +212,6 @@ export function PoliceGrid({ policiais, subunidades = [], funcoes = [], highligh
         isOpen={isOpen}
         onClose={handleCloseModal}
         policial={selectedPolicial}
-        subunidades={subunidades}
-        funcoes={funcoes}
         sessionMatricula={sessionMatricula}
       />
     </>
